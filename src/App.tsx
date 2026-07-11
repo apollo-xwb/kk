@@ -666,7 +666,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col antialiased font-sans select-none pb-12">
+    <div className="min-h-screen bg-transparent flex flex-col antialiased font-sans select-none pb-12">
       {/* Dynamic Floating Toast System */}
       <AnimatePresence>
         {toastMessage && (
