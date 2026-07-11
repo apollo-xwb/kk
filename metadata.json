@@ -1,0 +1,8 @@
+{
+  "name": "Krispy King Remote Order",
+  "description": "A high-performance remote ordering app for Krispy King fast-food grilled & fried chicken restaurant, featuring combo meal builders, pickup passes, and real-time staff order management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

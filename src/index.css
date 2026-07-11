@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --primary-gold: #FFD700;
+  --secondary-red: #E31837;
+  --accent-black: #000000;
+  --bg-white: #FFFFFF;
+  --surface-light: #F5F5F5;
+  --success-green: #228B22;
+  --warning-orange: #FF8C00;
+}
+
+@theme {
+  --font-sans: "Montserrat", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-gold: #FFD700;
+  --color-chicken-red: #E31837;
+  --color-dark-accent: #0b0c10;
+  --color-surface-gray: #F5F5F5;
+  --color-success-green: #228B22;
+  --color-warning-orange: #FF8C00;
+}
+
+/* Base resets & custom scrollbar to match Krispy King's professional branding */
+html, body {
+  background-color: #F5F5F5;
+  color: #111111;
+  font-family: var(--font-sans);
+  overflow-y: auto;
+  touch-action: manipulation;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F5F5F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #CCCCCC;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #E31837;
+}
+
+/* Dynamic pulse for cart */
+@keyframes cartPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.cart-bounce {
+  animation: cartPulse 0.3s ease-out;
+}
+
+/* Custom smooth marquee for active orders or announcements banner */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  gap: 2rem;
+  animation: marquee 25s linear infinite;
+  white-space: nowrap;
+  width: max-content;
+}
+
+/* Elegant fast-food stamp */
+.badge-popular {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000000;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.4);
+}
+
+.badge-spicy {
+  background: linear-gradient(135deg, #E31837, #FF4500);
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(227, 24, 55, 0.3);
+}
+
+/* Fire animations for Slogan "Can you handle the heat?" */
+@keyframes textGlow {
+  0%, 100% { text-shadow: 0 0 4px rgba(227, 24, 55, 0.4); }
+  50% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 18px rgba(227, 24, 55, 0.8); }
+}
+
+.fire-text-glow {
+  animation: textGlow 2.5s infinite;
+}

@@ -1,0 +1,1905 @@
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { 
+  Flame, 
+  ShoppingBag, 
+  QrCode, 
+  Search, 
+  User, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  Check, 
+  X, 
+  ChevronRight, 
+  ChevronLeft, 
+  ArrowLeft, 
+  TrendingUp, 
+  DollarSign, 
+  Sparkles, 
+  RefreshCw, 
+  Lock, 
+  Bell, 
+  Volume2, 
+  VolumeX,
+  Clock,
+  Camera,
+  Play,
+  CheckCircle,
+  Menu,
+  ChevronDown
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { MenuItem, CartItem, Order } from "./types";
+import { MENU_ITEMS } from "./data";
+import { MenuItemCard } from "./components/MenuItemCard";
+import { ItemDetailsModal } from "./components/ItemDetailsModal";
+import { QRCodeSVG } from "qrcode.react";
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  updateDoc 
+} from "firebase/firestore";
+import { db } from "./firebase";
+
+const MENU_CATEGORIES = [
+  "Grilled Chicken",
+  "Fried Chicken",
+  "Krispy Fried Tenders",
+  "Krispy Fried Wings",
+  "King Fried Burgers",
+  "Karolina Reaper Wings",
+  "Burgers",
+  "Chicken Twista",
+  "Meals & Combos",
+  "Family Meals",
+  "Sides & Extras",
+  "Breakfast Menu",
+  "Kiddies Meals",
+  "Beverages",
+  "Mocktails"
+];
+
+// Play rapid beep using Web Audio API
+const playBeep = (freq = 600, type: OscillatorType = "sine", duration = 0.1) => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    osc.start();
+    osc.stop(audioContext.currentTime + duration);
+  } catch (err) {
+    console.warn("Sound blocked or not supported", err);
+  }
+};
+
+export default function App() {
+  // --- Navigation & Route State ---
+  const [path, setPath] = useState<string>(() => {
+    return window.location.pathname || "/";
+  });
+
+  const navigate = (newPath: string) => {
+    window.history.pushState({}, "", newPath);
+    setPath(newPath);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setPath(window.location.pathname || "/");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // --- Core Application States ---
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("kk_cart");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist cart to localStorage
+  useEffect(() => {
+    localStorage.setItem("kk_cart", JSON.stringify(cart));
+  }, [cart]);
+
+  const [activeCategory, setActiveCategory] = useState<string>("Grilled Chicken");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
+
+  // --- Real-Time Firestore Synced Database States ---
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
+
+  // Sound notifications helper
+  const prevOrdersCount = useRef<number>(0);
+  const isFirstLoad = useRef<boolean>(true);
+
+  // Sync Orders
+  useEffect(() => {
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedOrders: Order[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        fetchedOrders.push({
+          id: doc.id,
+          passCode: data.passCode,
+          customerName: data.customerName,
+          items: data.items,
+          total: data.total,
+          status: data.status,
+          createdAt: data.createdAt,
+          verifiedAt: data.verifiedAt,
+          completedAt: data.completedAt,
+        });
+      });
+
+      // Sound notification on new pending order (for staff dashboard)
+      if (!isFirstLoad.current && fetchedOrders.length > prevOrdersCount.current) {
+        const newOrder = fetchedOrders[0];
+        if (newOrder && newOrder.status === "pending" && !isMuted) {
+          playBeep(523.25, "sine", 0.15);
+          setTimeout(() => playBeep(659.25, "sine", 0.15), 150);
+          setTimeout(() => playBeep(783.99, "sine", 0.3), 300);
+        }
+      }
+      
+      setOrders(fetchedOrders);
+      prevOrdersCount.current = fetchedOrders.length;
+      isFirstLoad.current = false;
+    });
+
+    return () => unsubscribe();
+  }, [isMuted]);
+
+  // Sync Menu Availability
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "admin_config", "menu_status"), (docSnap) => {
+      if (docSnap.exists()) {
+        setMenuAvailability(docSnap.data() as Record<string, boolean>);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Update Item Availability Helper
+  const toggleItemAvailability = async (itemId: string, currentStatus: boolean) => {
+    try {
+      const newStatus = !currentStatus;
+      const updatedAvailability = { ...menuAvailability, [itemId]: newStatus };
+      await setDoc(doc(db, "admin_config", "menu_status"), updatedAvailability);
+      triggerToast(`Quarter updated availability!`, "success");
+    } catch (e) {
+      console.error("Failed to update item availability", e);
+      triggerToast("Failed to update item status", "error");
+    }
+  };
+
+  // Helper to check if a menu item is available
+  const isItemAvailable = (itemId: string): boolean => {
+    return menuAvailability[itemId] !== false; // defaults to true if not explicitly set to false
+  };
+
+  // --- Dynamic Combo Builder State ---
+  const [selectedComboItem, setSelectedComboItem] = useState<MenuItem | null>(null);
+  const [selectedMenuItemForDetails, setSelectedMenuItemForDetails] = useState<MenuItem | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [overrideBreakfastTime, setOverrideBreakfastTime] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentHour = currentTime.getHours();
+  const isBreakfastActive = overrideBreakfastTime !== null ? overrideBreakfastTime : (currentHour >= 6 && currentHour < 11);
+
+  const [comboSelections, setComboSelections] = useState<Record<string, { label: string; priceModifier: number }>>({});
+  const [selectedSpiceLevel, setSelectedSpiceLevel] = useState<number>(1); // default Mild for spice-indicator items
+
+  // --- Toast Trigger helper ---
+  const triggerToast = (text: string, type: "success" | "info" | "error" = "success") => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
+  // --- Staff Session State ---
+  const [isStaffAuthenticated, setIsStaffAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem("kk_staff_authenticated") === "true";
+  });
+  const [staffPin, setStaffPin] = useState<string>("");
+  const [activeStaffTab, setActiveStaffTab] = useState<"feed" | "verify" | "menu" | "sales">("feed");
+
+  // --- QR Scanner / Code Verification Screen States ---
+  const [manualCodeInput, setManualCodeInput] = useState<string>("");
+  const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
+  const [scannerSimulationMode, setScannerSimulationMode] = useState<boolean>(false);
+  const [simulatedSelectOrderId, setSimulatedSelectOrderId] = useState<string>("");
+
+  // Total cart items count for badge bouncing
+  const cartTotalItems = useMemo(() => {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  }, [cart]);
+
+  // Handle adding non-combo items or items with plain spice
+  const handleAddToCart = (item: MenuItem, spiceOver?: number) => {
+    playBeep(880, "sine", 0.05);
+    const resolvedSpice = spiceOver !== undefined ? spiceOver : (item.spiceLevel || 0);
+    const selectedSpiceLabel = resolvedSpice === 1 ? "Mild 🌶️" : resolvedSpice === 2 ? "Hot 🌶️🌶️" : resolvedSpice === 3 ? "Extra Hot 🌶️🌶️🌶️" : "Lemon & Herb 🍋";
+    
+    const cartKey = resolvedSpice > 0 ? { "Spice Level": selectedSpiceLabel } : undefined;
+    
+    setCart((prevCart) => {
+      const existingIndex = prevCart.findIndex(
+        (c) => c.menuItem.id === item.id && JSON.stringify(c.selectedOptions) === JSON.stringify(cartKey)
+      );
+
+      if (existingIndex > -1) {
+        const updated = [...prevCart];
+        updated[existingIndex].quantity += 1;
+        return updated;
+      } else {
+        return [
+          ...prevCart,
+          {
+            menuItem: item,
+            quantity: 1,
+            selectedOptions: cartKey,
+            unitPrice: item.price
+          }
+        ];
+      }
+    });
+
+    triggerToast(`Added ${item.name} to cart!`, "success");
+  };
+
+  // Handle adding customized combo items
+  const handleAddComboToCart = () => {
+    if (!selectedComboItem) return;
+    playBeep(980, "sine", 0.06);
+
+    const selectedOptionsRecord: Record<string, string> = {};
+    let addedPrice = 0;
+
+    (Object.entries(comboSelections) as [string, { label: string; priceModifier: number }][]).forEach(([optionName, optionChoice]) => {
+      selectedOptionsRecord[optionName] = `${optionChoice.label} ${optionChoice.priceModifier > 0 ? `(+R${optionChoice.priceModifier.toFixed(2)})` : ""}`;
+      addedPrice += optionChoice.priceModifier;
+    });
+
+    // Add spice level option if any
+    if (selectedComboItem.spiceLevel !== undefined) {
+      const labels = ["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
+      selectedOptionsRecord["Spice Level"] = labels[selectedSpiceLevel];
+    }
+
+    const calculatedUnitPrice = selectedComboItem.price + addedPrice;
+
+    setCart((prevCart) => {
+      // Find if we already have the exact same combo item with exact same options
+      const existingIndex = prevCart.findIndex(
+        (c) => 
+          c.menuItem.id === selectedComboItem.id && 
+          JSON.stringify(c.selectedOptions) === JSON.stringify(selectedOptionsRecord)
+      );
+
+      if (existingIndex > -1) {
+        const updated = [...prevCart];
+        updated[existingIndex].quantity += 1;
+        return updated;
+      } else {
+        return [
+          ...prevCart,
+          {
+            menuItem: selectedComboItem,
+            quantity: 1,
+            selectedOptions: selectedOptionsRecord,
+            unitPrice: calculatedUnitPrice
+          }
+        ];
+      }
+    });
+
+    triggerToast(`Added ${selectedComboItem.name} Combo to cart!`, "success");
+    setSelectedComboItem(null);
+    setComboSelections({});
+  };
+
+  // Adjust quantities in cart
+  const updateCartQuantity = (itemIndex: number, change: number) => {
+    setCart((prevCart) => {
+      const updated = [...prevCart];
+      const target = updated[itemIndex];
+      if (!target) return prevCart;
+
+      const newQty = target.quantity + change;
+      if (newQty <= 0) {
+        updated.splice(itemIndex, 1);
+        playBeep(330, "sawtooth", 0.08);
+      } else {
+        updated[itemIndex].quantity = newQty;
+        playBeep(700 + change * 50, "sine", 0.04);
+      }
+      return updated;
+    });
+  };
+
+  // Quick Side Add-on upsell helper
+  const addQuickAddOn = (itemId: string) => {
+    const item = MENU_ITEMS.find((m) => m.id === itemId);
+    if (item && isItemAvailable(itemId)) {
+      handleAddToCart(item);
+    }
+  };
+
+  // Checkout submission state
+  const [customerName, setCustomerName] = useState<string>("");
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
+  const [latestCreatedOrderId, setLatestCreatedOrderId] = useState<string | null>(null);
+
+  // Cart pricing calculation
+  const cartSubtotal = useMemo(() => {
+    return cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
+  }, [cart]);
+
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerName.trim()) {
+      triggerToast("Please enter your name", "error");
+      return;
+    }
+    if (cart.length === 0) {
+      triggerToast("Your cart is empty", "error");
+      return;
+    }
+
+    setIsSubmittingOrder(true);
+    playBeep(880, "sine", 0.08);
+
+    try {
+      // Generate unique pickup pass code, e.g., KK-84A2F1
+      const generatedPass = `KK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const uniqueId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+      const orderData = {
+        id: uniqueId,
+        passCode: generatedPass,
+        customerName: customerName.trim(),
+        items: cart,
+        total: cartSubtotal,
+        status: "pending",
+        createdAt: Date.now(),
+      };
+
+      // Save order in Firestore
+      await setDoc(doc(db, "orders", uniqueId), orderData);
+
+      // Play continuous victory tones
+      setTimeout(() => playBeep(1100, "sine", 0.1), 100);
+      setTimeout(() => playBeep(1320, "sine", 0.15), 220);
+
+      triggerToast("Order Placed! Please show code at counter.", "success");
+      setCart([]);
+      setCustomerName("");
+      setLatestCreatedOrderId(uniqueId);
+      navigate(`/pass/${uniqueId}`);
+    } catch (err) {
+      console.error(err);
+      triggerToast("Failed to submit order. Please try again.", "error");
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
+  // Handle staff login
+  const handleStaffLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (staffPin === "8034") {
+      setIsStaffAuthenticated(true);
+      localStorage.setItem("kk_staff_authenticated", "true");
+      setStaffPin("");
+      playBeep(1000, "sine", 0.1);
+      triggerToast("Authenticated as Staff!", "success");
+      navigate("/staff/dashboard");
+    } else {
+      playBeep(220, "sawtooth", 0.2);
+      triggerToast("Incorrect PIN. Please try again.", "error");
+    }
+  };
+
+  const handleStaffLogout = () => {
+    setIsStaffAuthenticated(false);
+    localStorage.removeItem("kk_staff_authenticated");
+    playBeep(330, "sine", 0.1);
+    triggerToast("Logged out of staff panel", "info");
+    navigate("/");
+  };
+
+  // Change Order Status Helper on Staff Side
+  const updateOrderStatus = async (orderId: string, nextStatus: "pending" | "verified" | "completed" | "cancelled") => {
+    try {
+      const docRef = doc(db, "orders", orderId);
+      const updates: any = { status: nextStatus };
+      if (nextStatus === "verified") {
+        updates.verifiedAt = Date.now();
+        playBeep(880, "sine", 0.1);
+      } else if (nextStatus === "completed") {
+        updates.completedAt = Date.now();
+        playBeep(1000, "sine", 0.12);
+      } else {
+        playBeep(330, "sawtooth", 0.15);
+      }
+      
+      await updateDoc(docRef, updates);
+      triggerToast(`Order status set to ${nextStatus}!`, "success");
+    } catch (e) {
+      console.error(e);
+      triggerToast("Failed to update status", "error");
+    }
+  };
+
+  // Manual verify lookup helper
+  const handleManualCodeLookup = () => {
+    if (!manualCodeInput.trim()) return;
+    const formatted = manualCodeInput.trim().toUpperCase();
+    const matched = orders.find(
+      (o) => o.passCode === formatted || o.passCode.replace("KK-", "") === formatted
+    );
+
+    if (matched) {
+      setSearchedOrder(matched);
+      playBeep(880, "sine", 0.08);
+      triggerToast("Pass code matched!", "success");
+    } else {
+      setSearchedOrder(null);
+      playBeep(220, "sawtooth", 0.15);
+      triggerToast("No order found with this passcode", "error");
+    }
+  };
+
+  // Simulate scanning a code
+  const handleSimulateScan = () => {
+    if (!simulatedSelectOrderId) {
+      triggerToast("Select an order to simulate", "error");
+      return;
+    }
+    const order = orders.find((o) => o.id === simulatedSelectOrderId);
+    if (order) {
+      setSearchedOrder(order);
+      setManualCodeInput(order.passCode);
+      playBeep(1200, "sine", 0.1);
+      triggerToast(`Successfully scanned ${order.passCode}!`, "success");
+    }
+  };
+
+  // Get active order status on customer display
+  const customerActiveOrder = useMemo(() => {
+    if (path.startsWith("/pass/")) {
+      const parts = path.split("/");
+      const id = parts[2];
+      return orders.find((o) => o.id === id);
+    }
+    return null;
+  }, [path, orders]);
+
+  // Calculate stats for daily dashboard
+  const staffStats = useMemo(() => {
+    const completed = orders.filter((o) => o.status === "completed");
+    const verified = orders.filter((o) => o.status === "verified");
+    const pending = orders.filter((o) => o.status === "pending");
+    
+    const totalRev = completed.reduce((sum, o) => sum + o.total, 0);
+    const avgOrder = completed.length > 0 ? totalRev / completed.length : 0;
+
+    // Compile items sold counts
+    const itemsCountMap: Record<string, number> = {};
+    completed.forEach((o) => {
+      o.items.forEach((item) => {
+        const name = item.menuItem.name;
+        itemsCountMap[name] = (itemsCountMap[name] || 0) + item.quantity;
+      });
+    });
+
+    const topItems = Object.entries(itemsCountMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, qty]) => ({ name, qty }));
+
+    // Category Sales count
+    const categoryCountMap: Record<string, number> = {};
+    completed.forEach((o) => {
+      o.items.forEach((item) => {
+        const cat = item.menuItem.category;
+        categoryCountMap[cat] = (categoryCountMap[cat] || 0) + item.quantity;
+      });
+    });
+
+    return {
+      revenue: totalRev,
+      completedCount: completed.length,
+      verifiedCount: verified.length,
+      pendingCount: pending.length,
+      avgOrder,
+      topItems,
+      categoryStats: categoryCountMap
+    };
+  }, [orders]);
+
+  // Get current order count-up timer in minutes
+  const formatOrderTime = (createdAtTimestamp: number) => {
+    const diffMs = Date.now() - createdAtTimestamp;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    return `${diffMins}m ago`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col antialiased font-sans select-none pb-12">
+      {/* Dynamic Floating Toast System */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 max-w-sm font-semibold text-sm border bg-black text-white"
+          >
+            {toastMessage.type === "success" && <Check className="w-4 h-4 text-gold shrink-0" />}
+            {toastMessage.type === "info" && <Sparkles className="w-4 h-4 text-orange shrink-0" />}
+            {toastMessage.type === "error" && <X className="w-4 h-4 text-chicken-red shrink-0" />}
+            <span>{toastMessage.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Brand Header */}
+      <header className="sticky top-0 z-40 bg-black text-white shadow-md border-b-4 border-gold px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+            <div className="bg-white p-1 rounded-full border-2 border-chicken-red shadow-md w-16 h-16 flex items-center justify-center">
+              <img 
+                src="https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/logo.webp" 
+                alt="Krispy King Logo" 
+                className="w-14 h-14 object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Audio Toggle button */}
+            <button 
+              onClick={() => {
+                setIsMuted(!isMuted);
+                playBeep(880, "sine", 0.05);
+              }}
+              className="p-2.5 rounded-full hover:bg-gray-900 transition text-gray-300"
+              title={isMuted ? "Unmute" : "Mute Sound"}
+            >
+              {isMuted ? <VolumeX className="w-5 h-5 text-chicken-red" /> : <Volume2 className="w-5 h-5 text-gold" />}
+            </button>
+
+            {/* Portal Navigate Buttons */}
+            {path === "/" && (
+              <button 
+                onClick={() => navigate("/cart")}
+                className="relative p-2.5 bg-gray-900 rounded-full border border-gray-800 hover:bg-gray-800 transition"
+              >
+                <ShoppingBag className="w-5 h-5 text-gold" />
+                {cartTotalItems > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-chicken-red text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
+                    {cartTotalItems}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {path.startsWith("/staff") ? (
+              <button 
+                onClick={handleStaffLogout}
+                className="px-3 py-1.5 bg-chicken-red hover:bg-red-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider transition shadow-md border border-gold/40"
+              >
+                Exit Portal
+              </button>
+            ) : (
+              <button 
+                onClick={() => {
+                  if (isStaffAuthenticated) {
+                    navigate("/staff/dashboard");
+                  } else {
+                    navigate("/staff");
+                  }
+                }}
+                className="px-3 py-1.5 bg-gold hover:bg-yellow-400 text-black font-black text-xs rounded-lg uppercase tracking-wider transition shadow-md flex items-center gap-1.5"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                Staff Portal
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Body */}
+      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-6">
+        
+        {/* ==============================================
+             ROUTE: / (MENU BROWSER & COMBOS) 
+             ============================================== */}
+        {path === "/" && (
+          <div className="space-y-6">
+            {/* Promo Marquee */}
+            <div className="bg-chicken-red text-white py-2 px-3 rounded-xl overflow-hidden shadow-sm border border-gold/40 relative flex items-center">
+              <div className="absolute left-0 top-0 bottom-0 bg-chicken-red px-3 z-10 flex items-center border-r border-gold/20 font-black text-gold text-xs italic uppercase tracking-wider">
+                DEALS 🔥
+              </div>
+              <div className="w-full overflow-hidden pl-20">
+                <div className="animate-marquee text-xs font-bold uppercase tracking-wide">
+                  <span>🚀 Try our newly introduced KAROLINA REAPER sauce on Grilled Chicken! Can you handle the heat? 🌶️🌶️🌶️</span>
+                  <span>🍗 2 Full Chicken Family Pack for just R189.90! Save massive rands! 🍗</span>
+                  <span>🍔 Smashed Burger Beef double deal R69.90 - juicy patties, melted cheese! 🍔</span>
+                  <span>🍹 Fresh ice cold mocktails starting at only R39.90! Mojitos, sunrises, lemonades! 🍹</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Search & Category Filter */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              {/* Search input */}
+              <div className="relative md:col-span-1">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="w-5 h-5 text-gray-400" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search chicken, burgers, meals..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent font-medium shadow-sm"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Category tabs list */}
+              <div className="md:col-span-2 flex gap-2 overflow-x-auto pb-2 scrollbar-none scroll-smooth">
+                {MENU_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setActiveCategory(cat);
+                      playBeep(650, "sine", 0.03);
+                    }}
+                    className={`px-4 py-2.5 rounded-full font-black text-xs uppercase tracking-wider whitespace-nowrap transition shadow-sm shrink-0 border ${
+                      activeCategory === cat
+                        ? "bg-chicken-red border-gold text-white"
+                        : "bg-white hover:bg-gray-100 text-gray-700 border-gray-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Grid List of Menu Items */}
+            <div>
+              <h2 className="text-xl font-black text-black uppercase tracking-tight mb-4 flex items-center gap-2">
+                <span>{activeCategory} Menu</span>
+                <span className="h-1 flex-grow bg-gray-200 rounded-full"></span>
+              </h2>
+
+              {activeCategory === "Breakfast Menu" && !isBreakfastActive && (
+                <div className="mb-6 bg-amber-50 border-2 border-dashed border-amber-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-black uppercase text-amber-800 flex items-center gap-1.5">
+                      🍳 Breakfast Menu Hours (6:00 AM - 11:00 AM)
+                    </h4>
+                    <p className="text-xs text-amber-700 font-medium">
+                      It is currently {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Breakfast items are sold out or unavailable outside breakfast hours, but you can bypass this rule for testing.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      playBeep(700, "sine", 0.05);
+                      setOverrideBreakfastTime(true);
+                      triggerToast("Breakfast hours unlocked (Demo)!", "success");
+                    }}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow"
+                  >
+                    Bypass Time Constraint (Demo)
+                  </button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {MENU_ITEMS.filter((item) => {
+                  const matchCat = item.category === activeCategory;
+                  const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+                  return matchCat && matchSearch;
+                }).map((item) => {
+                  const isBreakfastItem = item.category === "Breakfast Menu" || item.isBreakfast;
+                  const available = isItemAvailable(item.id) && (!isBreakfastItem || isBreakfastActive);
+                  return (
+                    <MenuItemCard
+                      key={item.id}
+                      item={item}
+                      available={available}
+                      onAdd={(item, spice) => handleAddToCart(item, spice)}
+                      onCustomize={(item) => {
+                        playBeep(750, "sine", 0.05);
+                        setSelectedComboItem(item);
+                        // initialize selections
+                        const initOpts: any = {};
+                        if (item.comboOptions) {
+                          item.comboOptions.forEach(opt => {
+                            initOpts[opt.name] = opt.choices[0];
+                          });
+                        }
+                        setComboSelections(initOpts);
+                        setSelectedSpiceLevel(item.spiceLevel || 1);
+                      }}
+                      onSelect={(item) => {
+                        playBeep(650, "sine", 0.03);
+                        setSelectedMenuItemForDetails(item);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Floating Cart Bar for Mobile bottom */}
+            {cartTotalItems > 0 && (
+              <div className="fixed bottom-4 left-4 right-4 z-30">
+                <button
+                  onClick={() => {
+                    playBeep(880, "sine", 0.08);
+                    navigate("/cart");
+                  }}
+                  className="w-full bg-black text-white px-5 py-4 rounded-full shadow-2xl flex items-center justify-between border-2 border-gold hover:bg-gray-900 transition transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-chicken-red p-2 rounded-full text-white">
+                      <ShoppingBag className="w-5 h-5 text-gold" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-[10px] text-gray-300 font-bold uppercase tracking-wider">Your Hot Cart</span>
+                      <span className="text-sm font-black text-gold">{cartTotalItems} items • R{cartSubtotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-black uppercase text-white tracking-wider">
+                    Review Cart
+                    <ChevronRight className="w-4 h-4 text-gold" />
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: /cart (CART REVIEW SCREEN)
+             ============================================== */}
+        {path === "/cart" && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 max-w-2xl mx-auto space-y-6">
+            <div className="flex items-center justify-between border-b pb-4">
+              <button
+                onClick={() => {
+                  playBeep(600, "sine", 0.05);
+                  navigate("/");
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 hover:text-black transition"
+              >
+                <ArrowLeft className="w-4 h-4" /> Keep Browsing
+              </button>
+              <h2 className="text-xl font-black text-black uppercase tracking-tight">Your Cart</h2>
+              <span className="text-xs font-black bg-gold text-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                {cartTotalItems} items
+              </span>
+            </div>
+
+            {cart.length === 0 ? (
+              <div className="text-center py-12 space-y-4">
+                <div className="inline-flex p-4 bg-gray-100 rounded-full text-gray-400">
+                  <ShoppingBag className="w-12 h-12" />
+                </div>
+                <h3 className="text-lg font-black text-black uppercase tracking-tight">Your cart is empty</h3>
+                <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                  Looks like you haven't added any grilled or fried chicken to your feast yet!
+                </p>
+                <button
+                  onClick={() => navigate("/")}
+                  className="px-6 py-2.5 bg-chicken-red hover:bg-red-700 text-white font-black text-sm uppercase rounded-xl tracking-wider shadow"
+                >
+                  Go to Menu
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Cart Items List */}
+                <div className="divide-y divide-gray-100">
+                  {cart.map((item, index) => (
+                    <div key={index} className="py-4 flex items-start gap-4">
+                      {/* Item Image */}
+                      <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden shrink-0 border border-gray-200">
+                        <img
+                          src={item.menuItem.imageUrl}
+                          alt={item.menuItem.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+
+                      {/* Detail Text */}
+                      <div className="flex-grow">
+                        <h4 className="font-extrabold text-sm uppercase text-gray-900 tracking-tight">
+                          {item.menuItem.name}
+                        </h4>
+                        <span className="text-xs font-semibold text-chicken-red block mt-0.5">
+                          R{item.unitPrice.toFixed(2)} each
+                        </span>
+
+                        {/* Combo Selected options summary list */}
+                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                          <div className="mt-1.5 space-y-0.5 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            {Object.entries(item.selectedOptions).map(([key, val]) => (
+                              <div key={key} className="text-[10px] text-gray-600 font-bold flex gap-1 items-center uppercase">
+                                <span className="text-chicken-red">•</span>
+                                <span className="text-gray-400">{key}:</span>
+                                <span>{val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quantity Controls & Delete */}
+                      <div className="flex flex-col items-end justify-between h-full space-y-3 shrink-0">
+                        <span className="font-black text-sm text-gray-900">
+                          R{(item.unitPrice * item.quantity).toFixed(2)}
+                        </span>
+                        
+                        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                          <button
+                            onClick={() => updateCartQuantity(index, -1)}
+                            className="p-1 text-gray-600 hover:text-black hover:bg-gray-200 rounded transition"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="font-bold text-xs text-gray-900 w-5 text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateCartQuantity(index, 1)}
+                            className="p-1 text-gray-600 hover:text-black hover:bg-gray-200 rounded transition"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Upsell / Side Item Quick-Add Section */}
+                <div className="bg-amber-50 border border-gold/40 p-4 rounded-xl space-y-3">
+                  <span className="text-[10px] font-black uppercase text-orange bg-yellow-400/80 px-2 py-0.5 rounded border border-yellow-500">
+                    Hungry for more? Quick Add-on
+                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🍟</span>
+                      <div>
+                        <span className="block text-xs font-black uppercase text-gray-900">Add regular chips for only R32.90</span>
+                        <span className="block text-[10px] text-gray-500">Perfect crisp complement to any grilled chicken meal!</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => addQuickAddOn("s-chips-regular")}
+                      className="px-3 py-1.5 bg-gold hover:bg-yellow-400 text-black text-xs font-black rounded-lg uppercase tracking-wider transition shrink-0 shadow-sm"
+                    >
+                      Quick Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subtotal & Call to Action */}
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase text-gray-500">VAT (Included 15%)</span>
+                    <span className="text-xs font-bold text-gray-500">R{(cartSubtotal * 0.15).toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-dashed pt-3">
+                    <span className="text-sm font-black uppercase text-gray-900">Total Price</span>
+                    <span className="text-xl font-black text-chicken-red">R{cartSubtotal.toFixed(2)}</span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      playBeep(900, "sine", 0.08);
+                      navigate("/checkout");
+                    }}
+                    className="w-full mt-2 py-3 bg-chicken-red hover:bg-red-700 text-white font-black uppercase text-sm tracking-widest rounded-xl transition shadow-lg flex items-center justify-center gap-2"
+                  >
+                    Proceed to Checkout
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: /checkout (ORDER SUMMARY & PASS FLOW)
+             ============================================== */}
+        {path === "/checkout" && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 max-w-lg mx-auto space-y-6">
+            <div className="flex items-center justify-between border-b pb-4">
+              <button
+                onClick={() => {
+                  playBeep(600, "sine", 0.05);
+                  navigate("/cart");
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 hover:text-black transition"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to Cart
+              </button>
+              <h2 className="text-xl font-black text-black uppercase tracking-tight">Checkout</h2>
+            </div>
+
+            {cart.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-gray-500">Nothing to check out. Please add items first.</p>
+                <button onClick={() => navigate("/")} className="mt-3 px-4 py-2 bg-chicken-red text-white font-bold text-xs uppercase rounded">Go back</button>
+              </div>
+            ) : (
+              <form onSubmit={handleCheckoutSubmit} className="space-y-6">
+                {/* Order Summary Summary box */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-150 space-y-3">
+                  <span className="text-[10px] font-black uppercase text-gray-400 block tracking-wider">Checkout Order Summary</span>
+                  <div className="divide-y divide-gray-200 max-h-40 overflow-y-auto pr-1">
+                    {cart.map((item, idx) => (
+                      <div key={idx} className="py-2 flex justify-between text-xs font-bold uppercase text-gray-800">
+                        <span>{item.quantity}x {item.menuItem.name}</span>
+                        <span>R{(item.unitPrice * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-dashed pt-3 flex justify-between items-center">
+                    <span className="text-xs font-black uppercase text-gray-900">Total Bill</span>
+                    <span className="text-lg font-black text-chicken-red">R{cartSubtotal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Patron name input */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black uppercase text-gray-700 tracking-wider">
+                    Your Name (for Pickup call) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter name, e.g. Thabo, Chloe"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent font-semibold shadow-sm"
+                  />
+                  <p className="text-[10px] text-gray-500 italic mt-1">
+                    Note: Your pickup pass code will be linked with this name.
+                  </p>
+                </div>
+
+                {/* Important notice */}
+                <div className="bg-yellow-50 border-l-4 border-gold p-4 rounded-r-xl space-y-1">
+                  <h4 className="text-xs font-black uppercase text-yellow-800">💳 NO PRE-PAYMENT REQUIRED</h4>
+                  <p className="text-[10px] text-yellow-700 leading-normal font-medium">
+                    This order generates a pickup pass immediately. You simply show the code/QR at the counter, pay in cash or card, and grab your piping-hot meal!
+                  </p>
+                </div>
+
+                {/* Pay button */}
+                <button
+                  type="submit"
+                  disabled={isSubmittingOrder || !customerName.trim()}
+                  className={`w-full py-3.5 font-black uppercase text-sm tracking-widest rounded-xl transition shadow-lg flex items-center justify-center gap-2 ${
+                    isSubmittingOrder || !customerName.trim()
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-chicken-red hover:bg-red-700 text-white"
+                  }`}
+                >
+                  {isSubmittingOrder ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin text-gold" />
+                      Saving Order...
+                    </>
+                  ) : (
+                    <>
+                      Generate Pickup Pass
+                      <ChevronRight className="w-4 h-4 text-gold" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: /pass/:orderId (PASS DISPLAY SCREEN)
+             ============================================== */}
+        {path.startsWith("/pass/") && (
+          <div className="max-w-md mx-auto">
+            {customerActiveOrder ? (
+              <div className="bg-white rounded-3xl border-2 border-gold shadow-2xl overflow-hidden">
+                
+                {/* Header Banner */}
+                <div className="bg-black text-white p-5 text-center border-b-4 border-chicken-red space-y-2">
+                  <span className="px-2.5 py-1 bg-chicken-red border border-gold text-[10px] font-black uppercase rounded-full tracking-widest text-gold animate-pulse">
+                    Hot Pickup Pass
+                  </span>
+                  <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                    Krispy King Order Confirmed
+                  </h2>
+                </div>
+
+                <div className="p-6 text-center space-y-6">
+                  {/* Status Indicator */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-black tracking-widest text-gray-400">Order Status</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-3.5 h-3.5 rounded-full animate-ping ${
+                        customerActiveOrder.status === "pending" ? "bg-warning-orange" :
+                        customerActiveOrder.status === "verified" ? "bg-success-green" : "bg-gray-400"
+                      }`} />
+                      <span className={`text-lg font-black uppercase tracking-wider ${
+                        customerActiveOrder.status === "pending" ? "text-warning-orange" :
+                        customerActiveOrder.status === "verified" ? "text-success-green" : "text-gray-500"
+                      }`}>
+                        {customerActiveOrder.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Monospace Code Display */}
+                  <div className="bg-black text-gold p-6 rounded-2xl border-2 border-chicken-red space-y-2">
+                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Your Code</span>
+                    <span className="block text-3xl font-mono font-black tracking-wider text-white">
+                      {customerActiveOrder.passCode}
+                    </span>
+                    <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-wider">
+                      Name: {customerActiveOrder.customerName}
+                    </span>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="bg-gray-100 p-4 rounded-2xl inline-block border border-gray-200">
+                    <QRCodeSVG 
+                      value={customerActiveOrder.passCode} 
+                      size={180} 
+                      bgColor={"#FFFFFF"} 
+                      fgColor={"#000000"} 
+                      level={"H"} 
+                    />
+                    <span className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mt-2">
+                      Scan QR at cash register
+                    </span>
+                  </div>
+
+                  {/* Dynamic counter order timer */}
+                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-150 inline-flex items-center gap-2 text-xs font-bold text-gray-600">
+                    <Clock className="w-4 h-4 text-chicken-red" />
+                    <span>Placed: {formatOrderTime(customerActiveOrder.createdAt)}</span>
+                  </div>
+
+                  {/* Summary Checklist */}
+                  <div className="border-t border-dashed pt-4 text-left space-y-2">
+                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pickup Instructions</span>
+                    <div className="space-y-1.5 text-xs font-semibold text-gray-700">
+                      <p className="flex gap-1.5 items-start">
+                        <Check className="w-4 h-4 text-success-green shrink-0 mt-0.5" />
+                        <span>Show this code/QR to the counter staff when calling your name.</span>
+                      </p>
+                      <p className="flex gap-1.5 items-start">
+                        <Check className="w-4 h-4 text-success-green shrink-0 mt-0.5" />
+                        <span>Pay in cash or credit card inside the shop.</span>
+                      </p>
+                      <p className="flex gap-1.5 items-start">
+                        <Check className="w-4 h-4 text-success-green shrink-0 mt-0.5" />
+                        <span>Grab your grilled & fried chicken while it's steaming hot!</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      playBeep(600, "sine", 0.05);
+                      navigate("/");
+                    }}
+                    className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg transition"
+                  >
+                    Go Back to Menu
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 space-y-4">
+                <RefreshCw className="w-12 h-12 text-gold animate-spin mx-auto" />
+                <h3 className="text-lg font-black text-black uppercase tracking-tight">Syncing Order Status</h3>
+                <p className="text-sm text-gray-500">Retrieving details of your order. Please wait...</p>
+                <button onClick={() => navigate("/")} className="px-4 py-2 bg-chicken-red text-white font-bold text-xs uppercase rounded">
+                  Go Home
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: /staff (STAFF GATE PIN LOGIN)
+             ============================================== */}
+        {path === "/staff" && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 max-w-sm mx-auto space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 bg-gold/20 rounded-full text-gold">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-black text-black uppercase tracking-tight">Staff Portal</h2>
+              <p className="text-xs text-gray-500">Secure entry for verifying pickup passes & sales stats</p>
+            </div>
+
+            <form onSubmit={handleStaffLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase text-gray-700">Enter Access PIN *</label>
+                <input
+                  type="password"
+                  required
+                  maxLength={6}
+                  placeholder="Enter Access PIN"
+                  value={staffPin}
+                  onChange={(e) => setStaffPin(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 text-center text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-gold"
+                />
+              </div>
+
+              {/* Mini pinpad helper to speed up entry */}
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      playBeep(700, "sine", 0.03);
+                      setStaffPin((prev) => (prev + num).slice(0, 4));
+                    }}
+                    className="py-2.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg text-sm font-black text-gray-800 transition"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playBeep(400, "sine", 0.05);
+                    setStaffPin("");
+                  }}
+                  className="py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-xs font-black text-chicken-red transition"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playBeep(700, "sine", 0.03);
+                    setStaffPin((prev) => (prev + "0").slice(0, 4));
+                  }}
+                  className="py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-black text-gray-800 transition"
+                >
+                  0
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 bg-gold hover:bg-yellow-400 rounded-lg text-xs font-black text-black transition"
+                >
+                  OK
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-black text-white font-black uppercase text-xs tracking-wider rounded-xl hover:bg-gray-900 transition"
+              >
+                Log In
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: /staff/dashboard (DASHBOARD FLOWS)
+             ============================================== */}
+        {path === "/staff/dashboard" && (
+          <div className="space-y-6">
+            {!isStaffAuthenticated ? (
+              <div className="text-center py-12 space-y-4 bg-white p-6 rounded-2xl border">
+                <Lock className="w-12 h-12 text-chicken-red mx-auto animate-bounce" />
+                <h3 className="text-lg font-black text-black uppercase tracking-tight">Access Denied</h3>
+                <p className="text-sm text-gray-500">You must log in to access this portal.</p>
+                <button onClick={() => navigate("/staff")} className="px-6 py-2.5 bg-chicken-red text-white font-bold text-xs uppercase rounded-lg">
+                  Log In
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                
+                {/* Staff Control Panel Sub-Navigation */}
+                <div className="bg-black text-white p-4 rounded-2xl border-2 border-gold flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-md font-black uppercase tracking-tight text-gold flex items-center gap-1.5">
+                      <span>Krispy King Staff Hub</span>
+                      <span className="px-2 py-0.5 bg-success-green text-white text-[9px] rounded font-mono">LIVE OS</span>
+                    </h2>
+                    <p className="text-[10px] text-gray-300 font-bold uppercase tracking-wider">
+                      Demo PIN: 8034 • Fast Food remote flow
+                    </p>
+                  </div>
+
+                  <div className="flex gap-1.5 overflow-x-auto w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        setActiveStaffTab("feed");
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition ${
+                        activeStaffTab === "feed" ? "bg-chicken-red text-white" : "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                      }`}
+                    >
+                      Orders Feed ({orders.filter(o => o.status === "pending" || o.status === "verified").length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveStaffTab("verify");
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition ${
+                        activeStaffTab === "verify" ? "bg-chicken-red text-white" : "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                      }`}
+                    >
+                      Verify Pass
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveStaffTab("menu");
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition ${
+                        activeStaffTab === "menu" ? "bg-chicken-red text-white" : "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                      }`}
+                    >
+                      Menu Status
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveStaffTab("sales");
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition ${
+                        activeStaffTab === "sales" ? "bg-chicken-red text-white" : "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                      }`}
+                    >
+                      Sales summary
+                    </button>
+                  </div>
+                </div>
+
+                {/* TAB: Orders Feed */}
+                {activeStaffTab === "feed" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-black text-black uppercase tracking-tight flex items-center gap-1.5">
+                        <span>Incoming Pickup Orders</span>
+                        <span className="text-xs bg-gold text-black px-2 py-0.5 rounded font-black">
+                          {orders.length} TOTAL
+                        </span>
+                      </h3>
+                      <button 
+                        onClick={() => {
+                          playBeep(900, "sine", 0.05);
+                          triggerToast("Feeds refreshed from Firestore", "success");
+                        }}
+                        className="p-2 text-xs font-bold uppercase text-gray-500 hover:text-black flex items-center gap-1 border rounded-lg bg-white"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Force Sync
+                      </button>
+                    </div>
+
+                    {orders.length === 0 ? (
+                      <div className="bg-white rounded-2xl border text-center p-12 space-y-3">
+                        <Clock className="w-12 h-12 text-gray-300 mx-auto animate-pulse" />
+                        <h4 className="font-extrabold text-gray-700 uppercase">No active orders placed yet</h4>
+                        <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                          Whenever a customer submits an order, it will appear here instantly with sound notifications and live countdown timers!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {orders.map((order) => {
+                          return (
+                            <div 
+                              key={order.id}
+                              className={`bg-white rounded-2xl border-2 shadow-sm p-5 space-y-4 flex flex-col justify-between transition ${
+                                order.status === "pending" ? "border-orange/40 ring-2 ring-yellow-100" :
+                                order.status === "verified" ? "border-green-500/40 bg-green-50/10" :
+                                order.status === "completed" ? "border-gray-200 opacity-65" : "border-red-200 bg-red-50/5"
+                              }`}
+                            >
+                              {/* Order Header */}
+                              <div className="flex items-start justify-between border-b pb-2">
+                                <div>
+                                  <span className="block font-mono font-black text-sm text-black">
+                                    {order.passCode}
+                                  </span>
+                                  <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                    Patron: {order.customerName}
+                                  </span>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                  order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                                  order.status === "verified" ? "bg-green-100 text-green-800" :
+                                  order.status === "completed" ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-800"
+                                }`}>
+                                  {order.status}
+                                </span>
+                              </div>
+
+                              {/* Order Items List */}
+                              <div className="space-y-1.5 flex-grow">
+                                {order.items.map((cartItem, idx) => (
+                                  <div key={idx} className="text-xs font-bold text-gray-800 uppercase">
+                                    <div className="flex justify-between">
+                                      <span>• {cartItem.quantity}x {cartItem.menuItem.name}</span>
+                                      <span>R{(cartItem.unitPrice * cartItem.quantity).toFixed(2)}</span>
+                                    </div>
+                                    {cartItem.selectedOptions && Object.keys(cartItem.selectedOptions).length > 0 && (
+                                      <div className="pl-4 text-[9px] text-gray-500 font-semibold lowercase">
+                                        {Object.entries(cartItem.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(" | ")}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Footer pricing & buttons */}
+                              <div className="border-t pt-3 space-y-3">
+                                <div className="flex items-center justify-between text-xs font-bold">
+                                  <span className="text-gray-400 uppercase">Total Bill</span>
+                                  <span className="text-md font-black text-chicken-red">R{order.total.toFixed(2)}</span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-semibold justify-between">
+                                  <span>Time: {formatOrderTime(order.createdAt)}</span>
+                                </div>
+
+                                {/* Order Feed Actions */}
+                                <div className="grid grid-cols-3 gap-1 pt-1">
+                                  {order.status === "pending" && (
+                                    <button
+                                      onClick={() => updateOrderStatus(order.id, "verified")}
+                                      className="col-span-3 py-1.5 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-wider rounded transition"
+                                    >
+                                      Verify Payment
+                                    </button>
+                                  )}
+                                  {order.status === "verified" && (
+                                    <button
+                                      onClick={() => updateOrderStatus(order.id, "completed")}
+                                      className="col-span-3 py-1.5 bg-black hover:bg-gray-900 text-gold font-black uppercase text-[10px] tracking-wider rounded border border-gold transition"
+                                    >
+                                      Mark Completed
+                                    </button>
+                                  )}
+                                  {order.status !== "completed" && order.status !== "cancelled" && (
+                                    <button
+                                      onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                      className="py-1 bg-red-50 hover:bg-red-100 text-chicken-red font-bold uppercase text-[9px] rounded border border-red-200 transition"
+                                    >
+                                      Cancel
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB: Verify Pass */}
+                {activeStaffTab === "verify" && (
+                  <div className="max-w-xl mx-auto bg-white rounded-2xl border p-6 space-y-6 shadow-sm">
+                    <div className="text-center space-y-2">
+                      <h3 className="text-lg font-black text-black uppercase tracking-tight">Verify Pickup Pass</h3>
+                      <p className="text-xs text-gray-500">Scan customer QR code or enter code manually</p>
+                    </div>
+
+                    {/* Selector choice for Verify Type */}
+                    <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                      <button
+                        onClick={() => {
+                          setScannerSimulationMode(false);
+                          playBeep(650, "sine", 0.03);
+                        }}
+                        className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition ${
+                          !scannerSimulationMode ? "bg-black text-white" : "text-gray-600"
+                        }`}
+                      >
+                        Manual Entry
+                      </button>
+                      <button
+                        onClick={() => {
+                          setScannerSimulationMode(true);
+                          playBeep(650, "sine", 0.03);
+                        }}
+                        className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition ${
+                          scannerSimulationMode ? "bg-black text-white animate-pulse" : "text-gray-600"
+                        }`}
+                      >
+                        QR Camera Scanner
+                      </button>
+                    </div>
+
+                    {!scannerSimulationMode ? (
+                      /* Manual Pass Code Search Form */
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Enter Code (e.g. KK-38F2)"
+                            value={manualCodeInput}
+                            onChange={(e) => setManualCodeInput(e.target.value)}
+                            className="flex-grow px-4 py-3 border border-gray-300 rounded-xl font-mono text-center text-lg uppercase tracking-wider focus:ring-2 focus:ring-gold focus:outline-none"
+                          />
+                          <button
+                            onClick={handleManualCodeLookup}
+                            className="px-6 bg-black hover:bg-gray-900 text-gold font-black uppercase text-xs tracking-wider rounded-xl transition border border-gold"
+                          >
+                            Verify
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* QR Scanner Simulation Box */
+                      <div className="space-y-4 border rounded-2xl p-4 bg-gray-50 relative overflow-hidden">
+                        {/* Simulation overlays */}
+                        <div className="border-4 border-dashed border-chicken-red rounded-xl p-6 text-center space-y-3 relative bg-black/5">
+                          <Camera className="w-12 h-12 text-chicken-red mx-auto animate-pulse" />
+                          <div className="h-0.5 bg-chicken-red animate-bounce" />
+                          <span className="block text-[10px] font-black uppercase tracking-widest text-chicken-red">
+                            ACTIVE MOCK CAMERA VIEWFINDER
+                          </span>
+
+                          <div className="max-w-xs mx-auto space-y-3 bg-white p-3 rounded-lg shadow-md border">
+                            <label className="block text-left text-[9px] font-black uppercase text-gray-500">
+                              Simulate Pass scan choice:
+                            </label>
+                            <select
+                              value={simulatedSelectOrderId}
+                              onChange={(e) => setSimulatedSelectOrderId(e.target.value)}
+                              className="w-full text-xs p-1.5 border rounded focus:ring-1 focus:ring-gold bg-gray-50 uppercase font-bold"
+                            >
+                              <option value="">-- Choose active customer order --</option>
+                              {orders.filter(o => o.status === "pending" || o.status === "verified").map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {o.passCode} - {o.customerName}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              onClick={handleSimulateScan}
+                              className="w-full py-1.5 bg-chicken-red hover:bg-red-700 text-white font-black uppercase text-[10px] rounded transition"
+                            >
+                              Simulate Scanner Beep
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Verification Result Display Card */}
+                    {searchedOrder && (
+                      <div className="bg-amber-50 rounded-2xl border-2 border-gold p-5 space-y-4 animate-pulse">
+                        <div className="flex justify-between items-start border-b border-gold/30 pb-2">
+                          <div>
+                            <span className="block font-mono font-black text-md text-black">
+                              {searchedOrder.passCode}
+                            </span>
+                            <span className="block text-[10px] text-gray-500 font-bold uppercase">
+                              Patron: {searchedOrder.customerName}
+                            </span>
+                          </div>
+                          <span className="px-2.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-500 rounded font-black text-[9px] uppercase">
+                            Matched Order ({searchedOrder.status})
+                          </span>
+                        </div>
+
+                        {/* Items list */}
+                        <div className="space-y-1">
+                          {searchedOrder.items.map((cartItem, i) => (
+                            <div key={i} className="text-xs font-bold uppercase text-gray-800 flex justify-between">
+                              <span>{cartItem.quantity}x {cartItem.menuItem.name}</span>
+                              <span>R{(cartItem.unitPrice * cartItem.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="border-t border-gold/30 pt-3 flex justify-between items-center text-sm font-black">
+                          <span className="text-gray-500 uppercase">Total to Settle</span>
+                          <span className="text-chicken-red text-md">R{searchedOrder.total.toFixed(2)}</span>
+                        </div>
+
+                        {/* State Controls inside popup */}
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gold/30">
+                          {searchedOrder.status === "pending" && (
+                            <button
+                              onClick={() => {
+                                updateOrderStatus(searchedOrder.id, "verified");
+                                setSearchedOrder(null);
+                                setManualCodeInput("");
+                              }}
+                              className="col-span-2 py-2 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] tracking-wider rounded-lg transition"
+                            >
+                              Verify & Collect Payment
+                            </button>
+                          )}
+                          {searchedOrder.status === "verified" && (
+                            <button
+                              onClick={() => {
+                                updateOrderStatus(searchedOrder.id, "completed");
+                                setSearchedOrder(null);
+                                setManualCodeInput("");
+                              }}
+                              className="col-span-2 py-2 bg-black hover:bg-gray-900 text-gold font-black uppercase text-[10px] tracking-wider rounded-lg border border-gold transition"
+                            >
+                              Complete Pickup
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              updateOrderStatus(searchedOrder.id, "cancelled");
+                              setSearchedOrder(null);
+                              setManualCodeInput("");
+                            }}
+                            className="py-1.5 bg-red-50 hover:bg-red-100 text-chicken-red font-bold uppercase text-[9px] rounded border border-red-200 transition"
+                          >
+                            Cancel Order
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSearchedOrder(null);
+                              setManualCodeInput("");
+                            }}
+                            className="py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold uppercase text-[9px] rounded transition"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB: Menu Status Availability Toggler */}
+                {activeStaffTab === "menu" && (
+                  <div className="bg-white rounded-2xl border p-6 space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-black text-black uppercase tracking-tight">Menu Availability Manager</h3>
+                      <p className="text-xs text-gray-500">Toggle items as "Sold Out" instantly on customers' screens</p>
+                    </div>
+
+                    <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto pr-1">
+                      {MENU_ITEMS.map((item) => {
+                        const available = isItemAvailable(item.id);
+                        return (
+                          <div key={item.id} className="py-3.5 flex items-center justify-between gap-4">
+                            <div>
+                              <span className="block text-xs font-black uppercase text-gray-900 leading-tight">
+                                {item.name}
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase">
+                                {item.category} • R{item.price.toFixed(2)}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => toggleItemAvailability(item.id, available)}
+                              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition shadow-sm border ${
+                                available 
+                                  ? "bg-green-100 text-green-800 border-green-300 hover:bg-green-200" 
+                                  : "bg-red-100 text-chicken-red border-red-300 hover:bg-red-200"
+                              }`}
+                            >
+                              {available ? "Available ✅" : "Sold Out ❌"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Sales Summary Metrics */}
+                {activeStaffTab === "sales" && (
+                  <div className="space-y-6">
+                    {/* Metrics grid banner */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
+                        <div>
+                          <span className="block text-[10px] text-gray-400 font-black uppercase">Completed Sales</span>
+                          <span className="block text-xl font-black text-chicken-red">R{staffStats.revenue.toFixed(2)}</span>
+                        </div>
+                        <DollarSign className="w-8 h-8 text-gold shrink-0" />
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
+                        <div>
+                          <span className="block text-[10px] text-gray-400 font-black uppercase">Completed Orders</span>
+                          <span className="block text-xl font-black text-black">{staffStats.completedCount}</span>
+                        </div>
+                        <CheckCircle className="w-8 h-8 text-success-green shrink-0" />
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
+                        <div>
+                          <span className="block text-[10px] text-gray-400 font-black uppercase">Pending / Verified</span>
+                          <span className="block text-xl font-black text-black">
+                            {staffStats.pendingCount + staffStats.verifiedCount}
+                          </span>
+                        </div>
+                        <Clock className="w-8 h-8 text-warning-orange shrink-0 animate-pulse" />
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
+                        <div>
+                          <span className="block text-[10px] text-gray-400 font-black uppercase">Avg Ticket Size</span>
+                          <span className="block text-xl font-black text-black">R{staffStats.avgOrder.toFixed(2)}</span>
+                        </div>
+                        <TrendingUp className="w-8 h-8 text-gray-400 shrink-0" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Top Selling Items Box */}
+                      <div className="bg-white rounded-2xl border p-5 space-y-4">
+                        <h4 className="text-sm font-black uppercase text-black border-b pb-2 tracking-tight">
+                          🏆 TOP SELLING ITEMS (COMPLETED)
+                        </h4>
+                        
+                        {staffStats.topItems.length === 0 ? (
+                          <p className="text-xs text-gray-500 py-6 text-center">
+                            No items archived yet. Mark orders complete to compile stats!
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {staffStats.topItems.map((item, index) => (
+                              <div key={index} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs font-black text-chicken-red">#{index + 1}</span>
+                                  <span className="text-xs font-bold uppercase text-gray-800">{item.name}</span>
+                                </div>
+                                <span className="text-xs font-black bg-gold text-black px-2 py-0.5 rounded">
+                                  {item.qty} sold
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Pure CSS/SVG Category Sales Share visual */}
+                      <div className="bg-white rounded-2xl border p-5 space-y-4">
+                        <h4 className="text-sm font-black uppercase text-black border-b pb-2 tracking-tight">
+                          📊 CATEGORY DISTRIBUTION SHARE
+                        </h4>
+
+                        {Object.keys(staffStats.categoryStats).length === 0 ? (
+                          <p className="text-xs text-gray-500 py-6 text-center">
+                            No category data yet. Mark orders complete to render chart!
+                          </p>
+                        ) : (
+                          <div className="space-y-4">
+                            {(Object.entries(staffStats.categoryStats) as [string, number][]).map(([cat, qty], idx) => {
+                              const totalItems = (Object.values(staffStats.categoryStats) as number[]).reduce((s, q) => s + q, 0);
+                              const pct = totalItems > 0 ? (qty / totalItems) * 100 : 0;
+                              return (
+                                <div key={idx} className="space-y-1">
+                                  <div className="flex justify-between text-xs font-bold uppercase text-gray-700">
+                                    <span>{cat}</span>
+                                    <span>{pct.toFixed(0)}% ({qty})</span>
+                                  </div>
+                                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-chicken-red rounded-full"
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* ==============================================
+           COMBO BUILDER POPUP MODAL DRAWER 
+           ============================================== */}
+      <AnimatePresence>
+        {selectedComboItem && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl border shadow-2xl p-6 space-y-6 overflow-y-auto max-h-[85vh] sm:max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between border-b pb-3">
+                <div>
+                  <h3 className="text-lg font-black text-black uppercase tracking-tight">
+                    {selectedComboItem.name} Customizer
+                  </h3>
+                  <span className="text-xs text-chicken-red font-black block mt-0.5">
+                    Base: R{selectedComboItem.price.toFixed(2)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedComboItem(null)}
+                  className="p-1 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Combo Options selection form */}
+              <div className="space-y-5">
+                {/* Spice Selector Option for all relevant items */}
+                {selectedComboItem.spiceLevel !== undefined && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
+                      🌶️ SELECT YOUR SPICE LEVEL:
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            playBeep(600 + idx * 50, "sine", 0.04);
+                            setSelectedSpiceLevel(idx);
+                          }}
+                          className={`py-2 px-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-center border transition ${
+                            selectedSpiceLevel === idx
+                              ? "bg-chicken-red text-white border-chicken-red"
+                              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Meal Combo specific dropdown options */}
+                {selectedComboItem.comboOptions && selectedComboItem.comboOptions.map((opt) => (
+                  <div key={opt.name} className="space-y-2">
+                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
+                      {opt.name}:
+                    </label>
+                    <div className="space-y-1.5">
+                      {opt.choices.map((choice) => {
+                        const isSelected = comboSelections[opt.name]?.label === choice.label;
+                        return (
+                          <button
+                            key={choice.label}
+                            type="button"
+                            onClick={() => {
+                              playBeep(650, "sine", 0.04);
+                              setComboSelections((prev) => ({
+                                ...prev,
+                                [opt.name]: choice
+                              }));
+                            }}
+                            className={`w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase text-left border flex justify-between items-center transition ${
+                              isSelected
+                                ? "bg-amber-50 text-black border-gold ring-2 ring-gold/20"
+                                : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                            }`}
+                          >
+                            <span>{choice.label}</span>
+                            {choice.priceModifier > 0 && (
+                              <span className="text-chicken-red font-black">
+                                +R{choice.priceModifier.toFixed(2)}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={handleAddComboToCart}
+                className="w-full mt-4 py-3 bg-chicken-red hover:bg-red-700 text-white font-black uppercase text-xs tracking-wider rounded-xl transition shadow-lg"
+              >
+                Add Customized Meal to Cart
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedMenuItemForDetails && (
+          <ItemDetailsModal
+            item={selectedMenuItemForDetails}
+            available={isItemAvailable(selectedMenuItemForDetails.id) && (selectedMenuItemForDetails.category !== "Breakfast Menu" || isBreakfastActive)}
+            onClose={() => setSelectedMenuItemForDetails(null)}
+            onAdd={(item, spice) => handleAddToCart(item, spice)}
+            onCustomize={(item) => {
+              playBeep(750, "sine", 0.05);
+              setSelectedComboItem(item);
+              // initialize selections
+              const initOpts: any = {};
+              if (item.comboOptions) {
+                item.comboOptions.forEach(opt => {
+                  initOpts[opt.name] = opt.choices[0];
+                });
+              }
+              setComboSelections(initOpts);
+              setSelectedSpiceLevel(item.spiceLevel || 1);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

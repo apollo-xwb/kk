@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validator for Order
+    function isValidOrder(data) {
+      return data.keys().hasAll(['orderNumber', 'confirmationCode', 'patronName', 'tableNumber', 'total', 'status', 'createdAt', 'timestamp'])
+        && data.orderNumber is string && data.orderNumber.size() >= 1 && data.orderNumber.size() <= 20
+        && data.confirmationCode is string && data.confirmationCode.size() >= 1 && data.confirmationCode.size() <= 10
+        && data.patronName is string && data.patronName.size() >= 1 && data.patronName.size() <= 100
+        && data.tableNumber is string && data.tableNumber.size() >= 1 && data.tableNumber.size() <= 50
+        && data.total is number && data.total >= 0
+        && data.status is string && (data.status == 'Sent' || data.status == 'Preparing' || data.status == 'Served' || data.status == 'Completed' || data.status == 'Cancelled')
+        && data.createdAt is number
+        && data.timestamp is string && data.timestamp.size() >= 1 && data.timestamp.size() <= 20
+        && (!data.keys().hasAll(['collected']) || data.collected is bool)
+        && (!data.keys().hasAll(['paid']) || data.paid is bool)
+        && (!data.keys().hasAll(['receiptRequested']) || data.receiptRequested is bool)
+        && (!data.keys().hasAll(['receiptEmail']) || (data.receiptEmail is string && data.receiptEmail.size() <= 256))
+        && (!data.keys().hasAll(['receiptLogs']) || (data.receiptLogs is list && data.receiptLogs.size() <= 50))
+        && (!data.keys().hasAll(['items']) || (data.items is list && data.items.size() <= 100))
+        && (!data.keys().hasAll(['notes']) || (data.notes is string && data.notes.size() <= 500))
+        && (!data.keys().hasAll(['assignedWaiter']) || (data.assignedWaiter is string && data.assignedWaiter.size() <= 100));
+    }
+
+    // Entity validator for StaffProfile
+    function isValidStaffProfile(data) {
+      return data.keys().hasAll(['name', 'pin'])
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.pin is string && data.pin.size() >= 4 && data.pin.size() <= 10
+        && (!data.keys().hasAll(['clockedIn']) || data.clockedIn is bool);
+    }
+
+    // Entity validator for AdminConfigDnsSettings
+    function isValidDnsSettings(data) {
+      return data.keys().hasAll(['senderDomain', 'spfRecord', 'dkimSelector', 'dkimValue', 'smtpHost', 'smtpPort', 'smtpUser', 'spfVerified', 'dkimVerified', 'dnsProvider'])
+        && data.senderDomain is string && data.senderDomain.size() <= 256
+        && data.spfRecord is string && data.spfRecord.size() <= 512
+        && data.dkimSelector is string && data.dkimSelector.size() <= 128
+        && data.dkimValue is string && data.dkimValue.size() <= 2048
+        && data.smtpHost is string && data.smtpHost.size() <= 256
+        && data.smtpPort is string && data.smtpPort.size() <= 10
+        && data.smtpUser is string && data.smtpUser.size() <= 256
+        && data.spfVerified is bool
+        && data.dkimVerified is bool
+        && data.dnsProvider is string && data.dnsProvider.size() <= 128;
+    }
+
+    // Entity validator for AdminConfigAdminSettings
+    function isValidAdminSettings(data) {
+      return data.keys().hasAll(['passcode'])
+        && data.passcode is string && data.passcode.size() >= 4 && data.passcode.size() <= 16;
+    }
+
+    // Rule: staff_profiles collection
+    match /staff_profiles/{profileId} {
+      allow read: if true;
+      allow create: if isValidId(profileId) && isValidStaffProfile(incoming());
+      allow update: if isValidId(profileId) && isValidStaffProfile(incoming());
+      allow delete: if isValidId(profileId);
+    }
+
+    // Rule: admin_config collection
+    match /admin_config/{configId} {
+      allow read: if true;
+      allow create, update: if isValidId(configId) && (
+        (configId == 'dns_settings' && isValidDnsSettings(incoming())) ||
+        (configId == 'admin_settings' && isValidAdminSettings(incoming()))
+      );
+    }
+
+    // Rule: orders collection
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && isValidOrder(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(orderId);
+    }
+  }
+}
