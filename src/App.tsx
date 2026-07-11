@@ -145,6 +145,49 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  // --- Splash Screen & User Guide States ---
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
+    try {
+      const hasSeen = sessionStorage.getItem("kk_seen_splash");
+      return !hasSeen;
+    } catch {
+      return true;
+    }
+  });
+  const [loadingMessage, setLoadingMessage] = useState<string>("Initializing Krispy Remote Order...");
+  const [showGuide, setShowGuide] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (showSplash) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+        try {
+          sessionStorage.setItem("kk_seen_splash", "true");
+        } catch {}
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  useEffect(() => {
+    if (!showSplash) return;
+    const messages = [
+      "Firing up the grills... 🔥",
+      "Perfecting signature spices... 🍗",
+      "Simmering Karolina Reaper sauce... 🌶️",
+      "Ensuring crispy golden perfection... ✨",
+      "Ready to serve South Africa's finest! 👑"
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < messages.length - 1) {
+        i++;
+        setLoadingMessage(messages[i]);
+      }
+    }, 700);
+    return () => clearInterval(interval);
+  }, [showSplash]);
+
   // --- Core Application States ---
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -667,6 +710,96 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col antialiased font-sans select-none pb-12">
+      {/* 3D Immersive Splash Screen */}
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div 
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.6, ease: "easeInOut" } }}
+            className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 select-none overflow-hidden"
+          >
+            {/* Ambient Glows */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-chicken-red/20 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-gold/10 rounded-full blur-[120px] pointer-events-none" />
+            
+            {/* 3D Perspective Card Container */}
+            <div style={{ perspective: 1000 }} className="relative flex flex-col items-center">
+              <motion.div
+                initial={{ rotateY: -180, scale: 0.5, opacity: 0 }}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="relative"
+              >
+                <motion.div
+                  animate={{ 
+                    rotateY: [0, 15, -15, 0],
+                    rotateX: [0, -10, 10, 0],
+                    y: [0, -8, 8, 0]
+                  }}
+                  transition={{ 
+                    duration: 4, 
+                    ease: "easeInOut", 
+                    repeat: Infinity,
+                    repeatType: "mirror"
+                  }}
+                  className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-white p-2 border-4 border-gold shadow-[0_20px_50px_rgba(255,215,0,0.3)] flex items-center justify-center relative overflow-hidden"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  {/* Shimmer overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent -translate-x-full animate-pulse" style={{ animationDuration: "2s" }} />
+                  
+                  <img 
+                    src="https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/logo.webp" 
+                    alt="Krispy King" 
+                    className="w-32 h-32 md:w-38 md:h-38 object-contain"
+                    style={{ transform: "translateZ(30px)" }}
+                    referrerPolicy="no-referrer"
+                  />
+                </motion.div>
+              </motion.div>
+            </div>
+
+            {/* Typography & Branding */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="text-center mt-10 z-10"
+            >
+              <h1 className="text-3xl md:text-4xl font-black italic tracking-tight uppercase text-white flex items-center justify-center gap-1.5">
+                <span className="text-gold">Krispy</span> 
+                <span className="text-white">King</span>
+              </h1>
+              <p className="text-[10px] text-gold/80 font-black uppercase tracking-[0.25em] mt-1.5 italic">
+                - Remote Ordering -
+              </p>
+            </motion.div>
+
+            {/* Loading Indicator */}
+            <div className="w-64 max-w-xs mt-12 z-10">
+              <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-800">
+                <motion.div 
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 3.2, ease: "easeInOut" }}
+                  className="h-full bg-gradient-to-r from-chicken-red via-orange-500 to-gold"
+                />
+              </div>
+              <motion.p 
+                key={loadingMessage}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                className="text-[11px] text-gray-400 font-bold tracking-wide text-center mt-3 h-4 flex items-center justify-center"
+              >
+                {loadingMessage}
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Dynamic Floating Toast System */}
       <AnimatePresence>
         {toastMessage && (
@@ -793,6 +926,156 @@ export default function App() {
                   <span>🍹 Fresh ice cold mocktails starting at only R39.90! Mojitos, sunrises, lemonades! 🍹</span>
                 </div>
               </div>
+            </div>
+
+            {/* How to Use the App Toggle */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden transition-all duration-300">
+              <button 
+                onClick={() => {
+                  setShowGuide(!showGuide);
+                  playBeep(showGuide ? 500 : 700, "sine", 0.05);
+                }}
+                className="w-full px-5 py-4 flex items-center justify-between bg-black text-white hover:bg-gray-900 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-gold text-black p-2 rounded-xl">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-black uppercase tracking-tight text-sm text-gold">
+                      How to Use Remote Ordering
+                    </h3>
+                    <p className="text-[10px] text-gray-300 font-medium">
+                      In-depth guide to seamless collection & tracking
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-chicken-red text-white px-2.5 py-1 rounded-full font-black uppercase tracking-wider hidden sm:inline-block animate-pulse">
+                    Quick Guide
+                  </span>
+                  <ChevronDown className={`w-5 h-5 text-gold transition-transform duration-300 ${showGuide ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {showGuide && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="border-t border-gray-100 bg-gray-50/50 overflow-hidden"
+                  >
+                    <div className="p-5 md:p-6 space-y-6">
+                      {/* Step-by-Step Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {/* Step 1 */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col justify-between">
+                          <span className="absolute -top-3 -right-2 bg-gold text-black text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+                            01
+                          </span>
+                          <div>
+                            <div className="text-chicken-red font-black text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <Flame className="w-3.5 h-3.5" /> Select Meal
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                              Browse categories, select grilled/fried meals, and customize sizes and sizzling sauces.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col justify-between">
+                          <span className="absolute -top-3 -right-2 bg-gold text-black text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+                            02
+                          </span>
+                          <div>
+                            <div className="text-chicken-red font-black text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <ShoppingBag className="w-3.5 h-3.5" /> Order & Sync
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                              Confirm items in your cart, enter your name, and send directly to our cloud-synced kitchen.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col justify-between">
+                          <span className="absolute -top-3 -right-2 bg-gold text-black text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+                            03
+                          </span>
+                          <div>
+                            <div className="text-chicken-red font-black text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <QrCode className="w-3.5 h-3.5" /> Digital Pass
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                              A unique QR Pickup Pass is instantly cached in your browser so you never lose your code.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Step 4 */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col justify-between">
+                          <span className="absolute -top-3 -right-2 bg-gold text-black text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+                            04
+                          </span>
+                          <div>
+                            <div className="text-chicken-red font-black text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" /> Live Track
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                              Track state real-time: <span className="text-orange-500 font-extrabold">Pending</span>, <span className="text-amber-500 font-extrabold">Preparing</span>, or <span className="text-green-600 font-extrabold">Ready!</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Step 5 */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col justify-between">
+                          <span className="absolute -top-3 -right-2 bg-gold text-black text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow">
+                            05
+                          </span>
+                          <div>
+                            <div className="text-chicken-red font-black text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <CheckCircle className="w-3.5 h-3.5" /> Scan & Collect
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                              Arrive at the counter, let the staff scan your pass, and claim your crispy-hot meal!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Technical/Offline resilience details */}
+                      <div className="bg-gray-900 text-gray-300 p-4 rounded-xl border border-gold/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-extrabold bg-gold text-black px-2 py-0.5 rounded uppercase tracking-wider inline-block">
+                            💡 Pro Tip & Offline Support
+                          </span>
+                          <p className="text-xs font-semibold leading-relaxed">
+                            Signal dropped at the store? No worries! Your pickup pass QR code and status are cached locally. Show your cached screen at the counter, and staff can manually type your 6-digit Code to verify.
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            playBeep(880, "sine", 0.05);
+                            navigate("/passes");
+                          }}
+                          className="shrink-0 text-xs text-black bg-gold hover:bg-yellow-400 px-3.5 py-1.5 rounded-lg font-black uppercase tracking-wider transition-all shadow"
+                        >
+                          View My Passes
+                        </button>
+                      </div>
+
+                      {/* Secret Portal Tip */}
+                      <div className="text-[10px] text-gray-500 font-bold flex items-center gap-1.5 justify-center">
+                        <Lock className="w-3 h-3 text-gold" />
+                        <span>Simulate checkout and scan verification by tapping the <strong>Krispy King Logo</strong> at the top 5 times to enter the Staff Portal!</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Search & Category Filter */}
