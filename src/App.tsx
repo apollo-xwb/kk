@@ -82,6 +82,50 @@ const playBeep = (freq = 600, type: OscillatorType = "sine", duration = 0.1) => 
   }
 };
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+      isAnonymous: null,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 export default function App() {
   // --- Navigation & Route State ---
   const [path, setPath] = useState<string>(() => {
@@ -124,6 +168,55 @@ export default function App() {
   // --- Real-Time Firestore Synced Database States ---
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+
+  // --- Logo secret tap to open staff view ---
+  const [logoTapCount, setLogoTapCount] = useState<number>(0);
+  const logoTapTimeoutRef = useRef<any>(null);
+
+  // --- Saved customer pass IDs ---
+  const [savedPassIds, setSavedPassIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("kk_saved_pass_ids");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist saved pass IDs to localStorage
+  useEffect(() => {
+    localStorage.setItem("kk_saved_pass_ids", JSON.stringify(savedPassIds));
+  }, [savedPassIds]);
+
+  const customerPasses = useMemo(() => {
+    return orders.filter((o) => savedPassIds.includes(o.id));
+  }, [orders, savedPassIds]);
+
+  const handleLogoClick = () => {
+    if (logoTapTimeoutRef.current) {
+      clearTimeout(logoTapTimeoutRef.current);
+    }
+    
+    playBeep(880 + logoTapCount * 50, "sine", 0.05);
+    
+    const nextCount = logoTapCount + 1;
+    if (nextCount >= 5) {
+      setLogoTapCount(0);
+      if (isStaffAuthenticated) {
+        navigate("/staff/dashboard");
+      } else {
+        navigate("/staff");
+      }
+      triggerToast("🔑 Welcome to the Staff Portal!", "success");
+    } else {
+      setLogoTapCount(nextCount);
+      logoTapTimeoutRef.current = setTimeout(() => {
+        setLogoTapCount(0);
+      }, 2500); // Reset tap count if no taps for 2.5 seconds
+      navigate("/");
+    }
+  };
 
   // Sound notifications helper
   const prevOrdersCount = useRef<number>(0);
@@ -162,6 +255,13 @@ export default function App() {
       setOrders(fetchedOrders);
       prevOrdersCount.current = fetchedOrders.length;
       isFirstLoad.current = false;
+      setIsOffline(false);
+    }, (error) => {
+      if (error.code === "unavailable") {
+        setIsOffline(true);
+      } else {
+        handleFirestoreError(error, OperationType.GET, "orders");
+      }
     });
 
     return () => unsubscribe();
@@ -173,20 +273,27 @@ export default function App() {
       if (docSnap.exists()) {
         setMenuAvailability(docSnap.data() as Record<string, boolean>);
       }
+      setIsOffline(false);
+    }, (error) => {
+      if (error.code === "unavailable") {
+        setIsOffline(true);
+      } else {
+        handleFirestoreError(error, OperationType.GET, "admin_config/menu_status");
+      }
     });
     return () => unsubscribe();
   }, []);
 
   // Update Item Availability Helper
   const toggleItemAvailability = async (itemId: string, currentStatus: boolean) => {
+    const pathForWrite = "admin_config/menu_status";
     try {
       const newStatus = !currentStatus;
       const updatedAvailability = { ...menuAvailability, [itemId]: newStatus };
       await setDoc(doc(db, "admin_config", "menu_status"), updatedAvailability);
       triggerToast(`Quarter updated availability!`, "success");
     } catch (e) {
-      console.error("Failed to update item availability", e);
-      triggerToast("Failed to update item status", "error");
+      handleFirestoreError(e, OperationType.WRITE, pathForWrite);
     }
   };
 
@@ -373,10 +480,11 @@ export default function App() {
     setIsSubmittingOrder(true);
     playBeep(880, "sine", 0.08);
 
+    let uniqueId = "";
     try {
       // Generate unique pickup pass code, e.g., KK-84A2F1
       const generatedPass = `KK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const uniqueId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      uniqueId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
       const orderData = {
         id: uniqueId,
@@ -391,6 +499,14 @@ export default function App() {
       // Save order in Firestore
       await setDoc(doc(db, "orders", uniqueId), orderData);
 
+      // Save to customer's saved passes list
+      setSavedPassIds((prev) => {
+        if (!prev.includes(uniqueId)) {
+          return [uniqueId, ...prev];
+        }
+        return prev;
+      });
+
       // Play continuous victory tones
       setTimeout(() => playBeep(1100, "sine", 0.1), 100);
       setTimeout(() => playBeep(1320, "sine", 0.15), 220);
@@ -401,8 +517,7 @@ export default function App() {
       setLatestCreatedOrderId(uniqueId);
       navigate(`/pass/${uniqueId}`);
     } catch (err) {
-      console.error(err);
-      triggerToast("Failed to submit order. Please try again.", "error");
+      handleFirestoreError(err, OperationType.WRITE, `orders/${uniqueId}`);
     } finally {
       setIsSubmittingOrder(false);
     }
@@ -434,6 +549,7 @@ export default function App() {
 
   // Change Order Status Helper on Staff Side
   const updateOrderStatus = async (orderId: string, nextStatus: "pending" | "verified" | "completed" | "cancelled") => {
+    const pathForWrite = `orders/${orderId}`;
     try {
       const docRef = doc(db, "orders", orderId);
       const updates: any = { status: nextStatus };
@@ -450,8 +566,7 @@ export default function App() {
       await updateDoc(docRef, updates);
       triggerToast(`Order status set to ${nextStatus}!`, "success");
     } catch (e) {
-      console.error(e);
-      triggerToast("Failed to update status", "error");
+      handleFirestoreError(e, OperationType.UPDATE, pathForWrite);
     }
   };
 
@@ -572,8 +687,8 @@ export default function App() {
       {/* Brand Header */}
       <header className="sticky top-0 z-40 bg-black text-white shadow-md border-b-4 border-gold px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
-            <div className="bg-white p-1 rounded-full border-2 border-chicken-red shadow-md w-16 h-16 flex items-center justify-center">
+          <div className="flex items-center gap-3 cursor-pointer select-none" onClick={handleLogoClick}>
+            <div className="bg-white p-1 rounded-full border-2 border-chicken-red shadow-md w-16 h-16 flex items-center justify-center transform active:scale-95 transition-transform">
               <img 
                 src="https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/logo.webp" 
                 alt="Krispy King Logo" 
@@ -581,6 +696,20 @@ export default function App() {
                 referrerPolicy="no-referrer"
               />
             </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black tracking-tight text-white uppercase italic">
+                Krispy King
+              </span>
+              <span className="text-[9px] text-gold font-extrabold tracking-widest uppercase">
+                Remote Order
+              </span>
+            </div>
+            {isOffline && (
+              <span className="text-xs bg-red-600/80 text-white font-semibold px-2.5 py-1 rounded-full border border-red-500 flex items-center gap-1 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                Offline Mode
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -597,7 +726,7 @@ export default function App() {
             </button>
 
             {/* Portal Navigate Buttons */}
-            {path === "/" && (
+            {(path === "/" || path === "/passes") && (
               <button 
                 onClick={() => navigate("/cart")}
                 className="relative p-2.5 bg-gray-900 rounded-full border border-gray-800 hover:bg-gray-800 transition"
@@ -621,16 +750,22 @@ export default function App() {
             ) : (
               <button 
                 onClick={() => {
-                  if (isStaffAuthenticated) {
-                    navigate("/staff/dashboard");
-                  } else {
-                    navigate("/staff");
-                  }
+                  playBeep(880, "sine", 0.05);
+                  navigate("/passes");
                 }}
-                className="px-3 py-1.5 bg-gold hover:bg-yellow-400 text-black font-black text-xs rounded-lg uppercase tracking-wider transition shadow-md flex items-center gap-1.5"
+                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition shadow-md flex items-center gap-1.5 ${
+                  path === "/passes"
+                    ? "bg-gold text-black border-2 border-black"
+                    : "bg-gray-900 hover:bg-gray-800 text-gold border border-gold/40"
+                }`}
               >
-                <Lock className="w-3.5 h-3.5" />
-                Staff Portal
+                <QrCode className="w-3.5 h-3.5" />
+                My Passes
+                {customerPasses.length > 0 && (
+                  <span className="bg-chicken-red text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">
+                    {customerPasses.length}
+                  </span>
+                )}
               </button>
             )}
           </div>
@@ -661,47 +796,49 @@ export default function App() {
             </div>
 
             {/* Search & Category Filter */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-              {/* Search input */}
-              <div className="relative md:col-span-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Search className="w-5 h-5 text-gray-400" />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Search chicken, burgers, meals..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent font-medium shadow-sm"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-md">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                {/* Search input */}
+                <div className="relative md:col-span-1">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Search className="w-5 h-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search chicken, burgers, meals..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent font-medium shadow-sm"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
 
-              {/* Category tabs list */}
-              <div className="md:col-span-2 flex gap-2 overflow-x-auto pb-2 scrollbar-none scroll-smooth">
-                {MENU_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setActiveCategory(cat);
-                      playBeep(650, "sine", 0.03);
-                    }}
-                    className={`px-4 py-2.5 rounded-full font-black text-xs uppercase tracking-wider whitespace-nowrap transition shadow-sm shrink-0 border ${
-                      activeCategory === cat
-                        ? "bg-chicken-red border-gold text-white"
-                        : "bg-white hover:bg-gray-100 text-gray-700 border-gray-200"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+                {/* Category tabs list */}
+                <div className="md:col-span-2 flex gap-2 overflow-x-auto pb-2 scrollbar-none scroll-smooth">
+                  {MENU_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setActiveCategory(cat);
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-4 py-2.5 rounded-full font-black text-xs uppercase tracking-wider whitespace-nowrap transition shadow-sm shrink-0 border ${
+                        activeCategory === cat
+                          ? "bg-chicken-red border-gold text-white"
+                          : "bg-white hover:bg-gray-100 text-gray-700 border-gray-200"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -799,6 +936,140 @@ export default function App() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: /passes (MY PICKUP PASSES VIEW)
+             ============================================== */}
+        {path === "/passes" && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-xl p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+                <button
+                  onClick={() => {
+                    playBeep(600, "sine", 0.05);
+                    navigate("/");
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-bold uppercase text-gray-500 hover:text-black transition self-start sm:self-auto"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Go to Menu
+                </button>
+                <h2 className="text-xl font-black text-black uppercase tracking-tight flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-gold" />
+                  My Pickup Passes
+                </h2>
+                <span className="text-xs font-black bg-gold text-black px-2.5 py-1 rounded-full uppercase tracking-wider self-start sm:self-auto">
+                  {customerPasses.length} Saved
+                </span>
+              </div>
+
+              {/* Import manual code form */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider block">Import a Pass Code / Order ID</span>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!manualCodeInput.trim()) return;
+                    const code = manualCodeInput.trim().toUpperCase();
+                    const foundOrder = orders.find((o) => o.passCode === code || o.id === code);
+                    if (foundOrder) {
+                      setSavedPassIds((prev) => {
+                        if (!prev.includes(foundOrder.id)) {
+                          return [foundOrder.id, ...prev];
+                        }
+                        return prev;
+                      });
+                      setManualCodeInput("");
+                      triggerToast("Pass imported successfully!", "success");
+                    } else {
+                      triggerToast("Pass code not found in current session orders.", "error");
+                    }
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    placeholder="Enter Code (e.g. KK-84A2F1)"
+                    value={manualCodeInput}
+                    onChange={(e) => setManualCodeInput(e.target.value)}
+                    className="flex-grow px-3 py-2 rounded-lg border border-gray-300 text-sm uppercase font-semibold focus:outline-none focus:ring-2 focus:ring-gold"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-black text-gold font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-gray-900 transition"
+                  >
+                    Import
+                  </button>
+                </form>
+              </div>
+
+              {customerPasses.length === 0 ? (
+                <div className="text-center py-12 space-y-4">
+                  <div className="inline-flex p-4 bg-gray-100 rounded-full text-gray-400">
+                    <QrCode className="w-12 h-12 animate-pulse" />
+                  </div>
+                  <h3 className="text-lg font-black text-black uppercase tracking-tight">No Pickup Passes Saved</h3>
+                  <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                    You haven't generated any hot chicken pickup passes yet. Create your order to get one!
+                  </p>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="px-6 py-2.5 bg-chicken-red hover:bg-red-700 text-white font-black text-sm uppercase rounded-xl tracking-wider shadow"
+                  >
+                    Browse Menu & Order
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {customerPasses.map((pass) => {
+                    return (
+                      <div 
+                        key={pass.id} 
+                        onClick={() => {
+                          playBeep(750, "sine", 0.05);
+                          navigate(`/pass/${pass.id}`);
+                        }}
+                        className="p-4 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200 transition shadow-sm cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                      >
+                        <div className="space-y-1.5 text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-lg text-black group-hover:text-chicken-red transition">
+                              {pass.passCode}
+                            </span>
+                            <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full tracking-wider ${
+                              pass.status === "pending" ? "bg-amber-100 text-amber-800" :
+                              pass.status === "verified" ? "bg-green-100 text-green-800" :
+                              pass.status === "completed" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {pass.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 font-semibold uppercase">
+                            <span>Placed: {new Date(pass.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</span>
+                            <span className="mx-2">•</span>
+                            <span>Name: {pass.customerName}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 font-medium">
+                            {pass.items.map((item) => `${item.quantity}x ${item.menuItem.name}`).join(", ")}
+                          </div>
+                        </div>
+
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t pt-2 sm:border-t-0 sm:pt-0">
+                          <span className="text-lg font-black text-chicken-red">
+                            R{pass.total.toFixed(2)}
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-wider text-gold flex items-center gap-1 group-hover:underline">
+                            View Pass
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

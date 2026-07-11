@@ -59,7 +59,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   return (
     <div
       onClick={() => onSelect(item)}
-      className={`relative bg-white rounded-2xl border-2 border-gray-150 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-[445px] cursor-pointer group ${
+      className={`relative bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-md hover:shadow-xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between h-[475px] cursor-pointer group ${
         !available ? "opacity-65" : ""
       }`}
       id={`menu-item-${item.id}`}
@@ -98,7 +98,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
       )}
 
       {/* Image Container (top 60%) */}
-      <div className="relative h-[285px] w-full bg-gray-100 border-b border-gray-150 overflow-hidden shrink-0">
+      <div className="relative h-[315px] w-full bg-white border-b border-gray-150 overflow-hidden shrink-0">
         {/* Shimmering Skeleton Loader */}
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse flex items-center justify-center">

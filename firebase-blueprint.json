@@ -1,82 +1,38 @@
 {
   "entities": {
-    "AdminConfigDnsSettings": {
-      "title": "AdminConfigDnsSettings",
-      "description": "DNS and Mail configurations for the Zevolis system",
-      "type": "object",
-      "properties": {
-        "senderDomain": { "type": "string" },
-        "spfRecord": { "type": "string" },
-        "dkimSelector": { "type": "string" },
-        "dkimValue": { "type": "string" },
-        "smtpHost": { "type": "string" },
-        "smtpPort": { "type": "string" },
-        "smtpUser": { "type": "string" },
-        "spfVerified": { "type": "boolean" },
-        "dkimVerified": { "type": "boolean" },
-        "dnsProvider": { "type": "string" }
-      },
-      "required": ["senderDomain", "spfRecord", "dkimSelector", "dkimValue", "smtpHost", "smtpPort", "smtpUser", "spfVerified", "dkimVerified", "dnsProvider"]
-    },
-    "AdminConfigAdminSettings": {
-      "title": "AdminConfigAdminSettings",
-      "description": "Admin settings passcode configuration",
-      "type": "object",
-      "properties": {
-        "passcode": { "type": "string" }
-      },
-      "required": ["passcode"]
-    },
-    "StaffProfile": {
-      "title": "StaffProfile",
-      "description": "A staff member profile for authentication and shift tracking",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "pin": { "type": "string" },
-        "clockedIn": { "type": "boolean" }
-      },
-      "required": ["name", "pin"]
-    },
     "Order": {
       "title": "Order",
-      "description": "An order logged in the system",
+      "description": "A customer order in the Krispy King system",
       "type": "object",
       "properties": {
-        "orderNumber": { "type": "string" },
-        "confirmationCode": { "type": "string" },
-        "patronName": { "type": "string" },
-        "tableNumber": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "passCode": { "type": "string", "pattern": "^KK-[A-Z0-9]+$" },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "items": { "type": "array", "description": "List of cart items containing menuItem, quantity, unitPrice and selectedOptions" },
         "total": { "type": "number" },
-        "status": { "type": "string" },
-        "collected": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["pending", "verified", "completed", "cancelled"] },
         "createdAt": { "type": "number" },
-        "timestamp": { "type": "string" },
-        "notes": { "type": "string" },
-        "assignedWaiter": { "type": "string" },
-        "paid": { "type": "boolean" },
-        "receiptRequested": { "type": "boolean" },
-        "receiptEmail": { "type": "string" }
+        "verifiedAt": { "type": "number" },
+        "completedAt": { "type": "number" }
       },
-      "required": ["orderNumber", "confirmationCode", "patronName", "tableNumber", "total", "status", "createdAt", "timestamp"]
+      "required": ["id", "passCode", "customerName", "items", "total", "status", "createdAt"]
+    },
+    "MenuStatus": {
+      "title": "MenuStatus",
+      "description": "Menu item availability status map where keys are item IDs and values are booleans",
+      "type": "object",
+      "properties": {},
+      "required": []
     }
   },
   "firestore": {
-    "admin_config/dns_settings": {
-      "schema": "#/entities/AdminConfigDnsSettings",
-      "description": "DNS and mail delivery configurations"
-    },
-    "admin_config/admin_settings": {
-      "schema": "#/entities/AdminConfigAdminSettings",
-      "description": "Admin configuration passcode settings"
-    },
-    "staff_profiles/{profileId}": {
-      "schema": "#/entities/StaffProfile",
-      "description": "Staff profiles tracking names, pins and shift statuses"
-    },
     "orders/{orderId}": {
       "schema": "#/entities/Order",
-      "description": "Customer order history and current active status"
+      "description": "Order records for customers showing queue number, status, total price, and timestamps"
+    },
+    "admin_config/menu_status": {
+      "schema": "#/entities/MenuStatus",
+      "description": "Document tracking which menu items are currently available"
     }
   }
 }

@@ -68,7 +68,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
         </button>
 
         {/* Large Hero Image (Top) */}
-        <div className="relative h-80 sm:h-96 w-full bg-gray-100 overflow-hidden shrink-0">
+        <div className="relative h-96 sm:h-[420px] w-full bg-white border-b overflow-hidden shrink-0">
           {!imageError ? (
             <img
               src={item.imageUrl}
