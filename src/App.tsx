@@ -26,7 +26,11 @@ import {
   Play,
   CheckCircle,
   Menu,
-  ChevronDown
+  ChevronDown,
+  Download,
+  Printer,
+  Share2,
+  Copy
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { MenuItem, CartItem, Order } from "./types";
@@ -375,7 +379,19 @@ export default function App() {
     return localStorage.getItem("kk_staff_authenticated") === "true";
   });
   const [staffPin, setStaffPin] = useState<string>("");
-  const [activeStaffTab, setActiveStaffTab] = useState<"feed" | "verify" | "menu" | "sales">("feed");
+  const [activeStaffTab, setActiveStaffTab] = useState<"feed" | "verify" | "menu" | "sales" | "placard">("feed");
+
+  // --- Placard Configuration States ---
+  const [placardUrl, setPlacardUrl] = useState<string>("");
+  const [placardColor, setPlacardColor] = useState<"fiery" | "midnight" | "black">("fiery");
+  const [placardTitle, setPlacardTitle] = useState<string>("SKIP THE LINE!");
+  const [placardSubtitle, setPlacardSubtitle] = useState<string>("SCAN TO ORDER REMOTELY");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPlacardUrl(window.location.origin);
+    }
+  }, []);
 
   // --- QR Scanner / Code Verification Screen States ---
   const [manualCodeInput, setManualCodeInput] = useState<string>("");
@@ -1067,11 +1083,7 @@ export default function App() {
                         </button>
                       </div>
 
-                      {/* Secret Portal Tip */}
-                      <div className="text-[10px] text-gray-500 font-bold flex items-center gap-1.5 justify-center">
-                        <Lock className="w-3 h-3 text-gold" />
-                        <span>Simulate checkout and scan verification by tapping the <strong>Krispy King Logo</strong> at the top 5 times to enter the Staff Portal!</span>
-                      </div>
+
                     </div>
                   </motion.div>
                 )}
@@ -1868,6 +1880,17 @@ export default function App() {
                     >
                       Sales summary
                     </button>
+                    <button
+                      onClick={() => {
+                        setActiveStaffTab("placard");
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition ${
+                        activeStaffTab === "placard" ? "bg-chicken-red text-white animate-pulse" : "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                      }`}
+                    >
+                      🔥 Placard QR
+                    </button>
                   </div>
                 </div>
 
@@ -2309,6 +2332,393 @@ export default function App() {
                             })}
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Official Placard QR */}
+                {activeStaffTab === "placard" && (
+                  <div className="space-y-6">
+                    {/* Inject Print Styles dynamically */}
+                    <style>{`
+                      @media print {
+                        body * {
+                          visibility: hidden !important;
+                          background: none !important;
+                        }
+                        #printable-placard-poster, #printable-placard-poster * {
+                          visibility: visible !important;
+                        }
+                        #printable-placard-poster {
+                          position: fixed !important;
+                          left: 0 !important;
+                          top: 0 !important;
+                          width: 100vw !important;
+                          height: 100vh !important;
+                          margin: 0 !important;
+                          padding: 40px !important;
+                          box-shadow: none !important;
+                          border: none !important;
+                          z-index: 99999 !important;
+                          -webkit-print-color-adjust: exact !important;
+                          print-color-adjust: exact !important;
+                          background-color: #09090b !important;
+                          color: #ffffff !important;
+                          display: flex !important;
+                          flex-direction: column !important;
+                          justify-content: space-between !important;
+                        }
+                      }
+                    `}</style>
+
+                    <div className="flex flex-col xl:flex-row gap-6 items-start">
+                      {/* Configuration Controls (Left panel) */}
+                      <div className="w-full xl:w-96 shrink-0 bg-white rounded-2xl border p-5 md:p-6 space-y-6 shadow-sm">
+                        <div>
+                          <h3 className="text-sm font-black uppercase text-black tracking-tight flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-gold animate-spin" />
+                            <span>Customize Placard Poster</span>
+                          </h3>
+                          <p className="text-[10px] text-gray-500 font-medium">
+                            Set up the landing target and print layout
+                          </p>
+                        </div>
+
+                        {/* QR Destination Target */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black uppercase text-gray-700 tracking-wider">
+                            QR Landing Link Target URL:
+                          </label>
+                          <input 
+                            type="text"
+                            value={placardUrl}
+                            onChange={(e) => setPlacardUrl(e.target.value)}
+                            placeholder="https://kkexpress.vercel.app"
+                            className="w-full px-3.5 py-2 rounded-lg border border-gray-300 text-xs font-mono focus:ring-1 focus:ring-gold focus:outline-none"
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlacardUrl(window.location.origin);
+                                playBeep(600, "sine", 0.03);
+                              }}
+                              className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[9px] font-bold text-gray-600 transition"
+                            >
+                              Current Domain
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlacardUrl("https://krispykingsa.co.za");
+                                playBeep(600, "sine", 0.03);
+                              }}
+                              className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[9px] font-bold text-gray-600 transition"
+                            >
+                              Main Website
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Poster Theme Selector */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black uppercase text-gray-700 tracking-wider">
+                            Select Color Theme:
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlacardColor("fiery");
+                                playBeep(700, "sine", 0.03);
+                              }}
+                              className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${
+                                placardColor === "fiery" 
+                                  ? "bg-chicken-red text-white border-2 border-gold shadow" 
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}
+                            >
+                              Fiery Crimson
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlacardColor("midnight");
+                                playBeep(700, "sine", 0.03);
+                              }}
+                              className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${
+                                placardColor === "midnight" 
+                                  ? "bg-blue-900 text-white border-2 border-gold shadow" 
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}
+                            >
+                              Midnight Royal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlacardColor("black");
+                                playBeep(700, "sine", 0.03);
+                              }}
+                              className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${
+                                placardColor === "black" 
+                                  ? "bg-black text-white border-2 border-gold shadow" 
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }`}
+                            >
+                              Matte Charcoal
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Poster Heading Selector */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black uppercase text-gray-700 tracking-wider">
+                            Main Poster Title Hook:
+                          </label>
+                          <input 
+                            type="text"
+                            value={placardTitle}
+                            onChange={(e) => setPlacardTitle(e.target.value)}
+                            placeholder="SKIP THE LINE!"
+                            className="w-full px-3.5 py-2 rounded-lg border border-gray-300 text-xs font-bold focus:ring-1 focus:ring-gold focus:outline-none"
+                          />
+                        </div>
+
+                        {/* Poster Subtitle Selector */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black uppercase text-gray-700 tracking-wider">
+                            Sub-heading Banner:
+                          </label>
+                          <input 
+                            type="text"
+                            value={placardSubtitle}
+                            onChange={(e) => setPlacardSubtitle(e.target.value)}
+                            placeholder="SCAN TO ORDER REMOTELY"
+                            className="w-full px-3.5 py-2 rounded-lg border border-gray-300 text-xs font-bold focus:ring-1 focus:ring-gold focus:outline-none"
+                          />
+                        </div>
+
+                        {/* Action Triggers */}
+                        <div className="space-y-2 pt-4 border-t border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playBeep(880, "sine", 0.1);
+                              window.print();
+                            }}
+                            className="w-full py-3 bg-black text-gold hover:bg-gray-900 font-black uppercase text-xs tracking-wider rounded-xl transition border border-gold flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4 text-gold" />
+                            Print Official Placard (A4 / Letter)
+                          </button>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playBeep(700, "sine", 0.05);
+                                try {
+                                  const svgElement = document.getElementById("placard-qr-code");
+                                  if (!svgElement) return;
+                                  const svgString = new XMLSerializer().serializeToString(svgElement);
+                                  const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+                                  const blobURL = URL.createObjectURL(svgBlob);
+                                  const downloadLink = document.createElement("a");
+                                  downloadLink.href = blobURL;
+                                  downloadLink.download = "krispy-king-remote-qr.svg";
+                                  document.body.appendChild(downloadLink);
+                                  downloadLink.click();
+                                  document.body.removeChild(downloadLink);
+                                  triggerToast("Vector QR Code exported successfully!", "success");
+                                } catch (e) {
+                                  triggerToast("Failed to download SVG", "error");
+                                }
+                              }}
+                              className="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold uppercase text-[10px] rounded-lg transition flex items-center justify-center gap-1 border border-gray-200 cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Export SVG
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playBeep(700, "sine", 0.05);
+                                try {
+                                  const svgElement = document.getElementById("placard-qr-code");
+                                  if (!svgElement) return;
+                                  const svgString = new XMLSerializer().serializeToString(svgElement);
+                                  const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+                                  const blobURL = URL.createObjectURL(svgBlob);
+                                  const image = new Image();
+                                  image.onload = () => {
+                                    const canvas = document.createElement("canvas");
+                                    canvas.width = 1000;
+                                    canvas.height = 1000;
+                                    const context = canvas.getContext("2d");
+                                    if (context) {
+                                      context.fillStyle = "#FFFFFF";
+                                      context.fillRect(0, 0, 1000, 1000);
+                                      context.drawImage(image, 50, 50, 900, 900);
+                                      const png = canvas.toDataURL("image/png");
+                                      const downloadLink = document.createElement("a");
+                                      downloadLink.href = png;
+                                      downloadLink.download = "krispy-king-remote-qr.png";
+                                      document.body.appendChild(downloadLink);
+                                      downloadLink.click();
+                                      document.body.removeChild(downloadLink);
+                                      triggerToast("High-res PNG exported successfully!", "success");
+                                    }
+                                  };
+                                  image.src = blobURL;
+                                } catch (e) {
+                                  triggerToast("Failed to download PNG", "error");
+                                }
+                              }}
+                              className="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold uppercase text-[10px] rounded-lg transition flex items-center justify-center gap-1 border border-gray-200 cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Export PNG
+                            </button>
+                          </div>
+
+                          <div className="bg-amber-50 p-3 rounded-lg border border-gold/30 text-[9px] font-semibold text-amber-900 leading-relaxed">
+                            <strong>🖨️ Printer setup guide:</strong> When printing, select "Background graphics" and turn off header/footers inside the browser's system printing preferences. Set margins to <strong>None</strong> for a full-bleed borderless presentation!
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Official Poster Presentation Mockup (Right Panel) */}
+                      <div className="flex-grow w-full flex items-center justify-center p-2 sm:p-6 bg-gray-100 rounded-3xl border border-dashed border-gray-300 relative overflow-hidden group">
+                        {/* Cut corner guides & center register alignment marks to emulate a real print shop template */}
+                        <div className="absolute top-2 left-2 text-[8px] font-mono font-bold text-gray-400 select-none">┌─ REG_L_T ─</div>
+                        <div className="absolute top-2 right-2 text-[8px] font-mono font-bold text-gray-400 select-none">─ REG_R_T ─┐</div>
+                        <div className="absolute bottom-2 left-2 text-[8px] font-mono font-bold text-gray-400 select-none">└─ REG_L_B ─</div>
+                        <div className="absolute bottom-2 right-2 text-[8px] font-mono font-bold text-gray-400 select-none">─ REG_R_B ─┘</div>
+
+                        {/* Interactive Shadow Holder */}
+                        <div 
+                          id="printable-placard-poster"
+                          className={`w-full max-w-[500px] aspect-[1/1.414] rounded-2xl border-4 p-8 flex flex-col justify-between shadow-2xl relative select-none text-white ${
+                            placardColor === "fiery" 
+                              ? "bg-gradient-to-b from-zinc-950 via-[#110101] to-black border-chicken-red"
+                              : placardColor === "midnight"
+                              ? "bg-gradient-to-b from-zinc-950 via-[#010915] to-black border-blue-900"
+                              : "bg-gradient-to-b from-zinc-950 via-zinc-900 to-black border-zinc-800"
+                          }`}
+                        >
+                          {/* Inner double border */}
+                          <div className={`absolute inset-1.5 border border-dashed pointer-events-none rounded-xl ${
+                            placardColor === "fiery" ? "border-gold/30" : "border-gold/20"
+                          }`} />
+
+                          {/* Top Crown Header Block */}
+                          <div className="text-center space-y-2 z-10 relative">
+                            {/* Crown Logo Badge */}
+                            <div className="inline-flex p-3 rounded-full bg-black border-2 border-gold shadow-lg transform rotate-[-4deg] animate-pulse">
+                              <Sparkles className="w-8 h-8 text-gold" />
+                            </div>
+                            
+                            <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white leading-none">
+                              <span className="text-gold block">KRISPY</span> 
+                              <span className="text-white block mt-0.5">KING</span>
+                            </h2>
+                            
+                            <div className="inline-block bg-chicken-red text-white border border-gold px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic shadow-md">
+                              - FLAME-GRILLED & CRISPY -
+                            </div>
+                          </div>
+
+                          {/* Center Focus Area: QR Code with Action Prompts */}
+                          <div className="flex flex-col items-center justify-center space-y-4 z-10 relative py-6">
+                            {/* Call to action banners */}
+                            <div className="text-center space-y-1">
+                              <h4 className="text-2xl font-black tracking-tight text-white leading-tight uppercase italic">
+                                {placardTitle}
+                              </h4>
+                              <p className="text-[10px] font-bold text-gold uppercase tracking-[0.15em]">
+                                {placardSubtitle}
+                              </p>
+                            </div>
+
+                            {/* Intricate Frame around QR */}
+                            <div className="p-4 bg-white rounded-3xl shadow-[0_20px_50px_rgba(255,215,0,0.15)] border-4 border-gold relative group/qr flex items-center justify-center overflow-hidden">
+                              <QRCodeSVG 
+                                id="placard-qr-code"
+                                value={placardUrl || "https://krispykingsa.co.za"}
+                                size={190}
+                                bgColor="#ffffff"
+                                fgColor="#000000"
+                                level="H"
+                                includeMargin={false}
+                                imageSettings={{
+                                  src: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/logo.webp",
+                                  x: undefined,
+                                  y: undefined,
+                                  height: 42,
+                                  width: 42,
+                                  excavate: true,
+                                }}
+                              />
+                            </div>
+
+                            <p className="text-[9px] font-black text-gray-400 bg-black/60 px-3 py-1 rounded border border-gray-800 tracking-wider">
+                              URL: <span className="text-gold font-mono">{placardUrl || "window.location.origin"}</span>
+                            </p>
+                          </div>
+
+                          {/* Interactive User Steps Grid */}
+                          <div className="space-y-2.5 z-10 relative bg-black/35 p-3 rounded-xl border border-gray-900 backdrop-blur-md">
+                            <div className="grid grid-cols-3 gap-2">
+                              {/* Step 1 */}
+                              <div className="text-center space-y-1">
+                                <div className="w-6 h-6 rounded-full bg-gold text-black mx-auto flex items-center justify-center text-[10px] font-black">
+                                  1
+                                </div>
+                                <span className="block text-[8px] font-black uppercase text-white">SCAN CODE</span>
+                                <span className="block text-[7px] text-gray-400 font-medium">Use phone camera</span>
+                              </div>
+
+                              {/* Step 2 */}
+                              <div className="text-center space-y-1 border-l border-r border-gray-800/80 px-1">
+                                <div className="w-6 h-6 rounded-full bg-gold text-black mx-auto flex items-center justify-center text-[10px] font-black">
+                                  2
+                                </div>
+                                <span className="block text-[8px] font-black uppercase text-white">ORDER MEAL</span>
+                                <span className="block text-[7px] text-gray-400 font-medium">Choose and pay</span>
+                              </div>
+
+                              {/* Step 3 */}
+                              <div className="text-center space-y-1">
+                                <div className="w-6 h-6 rounded-full bg-gold text-black mx-auto flex items-center justify-center text-[10px] font-black">
+                                  3
+                                </div>
+                                <span className="block text-[8px] font-black uppercase text-white">FAST PICKUP</span>
+                                <span className="block text-[7px] text-gray-400 font-medium">Skip counter queue</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Footer and Security Seal */}
+                          <div className="flex justify-between items-center z-10 relative pt-4 border-t border-gray-900 text-left">
+                            <div>
+                              <span className="block text-[8px] font-bold text-gray-400 uppercase tracking-widest leading-none">
+                                OFFICIAL REMARK
+                              </span>
+                              <span className="block text-[10px] font-black text-white uppercase tracking-tight">
+                                QUEUE TERMINAL PLACARD
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="block text-[7px] font-mono text-gold/60">SYSTEM SECURED</span>
+                              <span className="block text-[8px] font-black text-gold uppercase tracking-widest">
+                                REMOTE_OS_V2
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
