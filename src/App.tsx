@@ -30,7 +30,9 @@ import {
   Download,
   Printer,
   Share2,
-  Copy
+  Copy,
+  BookOpen,
+  FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { MenuItem, CartItem, Order } from "./types";
@@ -286,6 +288,7 @@ export default function App() {
           createdAt: data.createdAt,
           verifiedAt: data.verifiedAt,
           completedAt: data.completedAt,
+          verificationPin: data.verificationPin,
         });
       });
 
@@ -379,7 +382,7 @@ export default function App() {
     return localStorage.getItem("kk_staff_authenticated") === "true";
   });
   const [staffPin, setStaffPin] = useState<string>("");
-  const [activeStaffTab, setActiveStaffTab] = useState<"feed" | "verify" | "menu" | "sales" | "placard">("feed");
+  const [activeStaffTab, setActiveStaffTab] = useState<"feed" | "verify" | "menu" | "sales" | "placard" | "training">("feed");
 
   // --- Placard Configuration States ---
   const [placardUrl, setPlacardUrl] = useState<string>("");
@@ -398,6 +401,14 @@ export default function App() {
   const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
   const [scannerSimulationMode, setScannerSimulationMode] = useState<boolean>(false);
   const [simulatedSelectOrderId, setSimulatedSelectOrderId] = useState<string>("");
+
+  // PIN Verification Modal States
+  const [pinVerificationOrder, setPinVerificationOrder] = useState<Order | null>(null);
+  const [enteredVerificationPin, setEnteredVerificationPin] = useState<string>("");
+
+  // Customer Self-Verification states
+  const [showSelfVerifyInput, setShowSelfVerifyInput] = useState<boolean>(false);
+  const [selfVerifyInputPin, setSelfVerifyInputPin] = useState<string>("");
 
   // Total cart items count for badge bouncing
   const cartTotalItems = useMemo(() => {
@@ -543,6 +554,7 @@ export default function App() {
     try {
       // Generate unique pickup pass code, e.g., KK-84A2F1
       const generatedPass = `KK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
       uniqueId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
       const orderData = {
@@ -553,6 +565,7 @@ export default function App() {
         total: cartSubtotal,
         status: "pending",
         createdAt: Date.now(),
+        verificationPin: generatedPin,
       };
 
       // Save order in Firestore
@@ -661,6 +674,114 @@ export default function App() {
       playBeep(1200, "sine", 0.1);
       triggerToast(`Successfully scanned ${order.passCode}!`, "success");
     }
+  };
+
+  // Download Plain Text Receipt
+  const handleDownloadTextReceipt = (order: Order) => {
+    playBeep(880, "sine", 0.08);
+    const dateStr = new Date(order.createdAt).toLocaleString();
+    const itemsLines = order.items.map(item => {
+      const optionsText = item.selectedOptions 
+        ? Object.entries(item.selectedOptions).map(([k, v]) => `  - ${k}: ${v}`).join("\n")
+        : "";
+      return `${item.quantity}x ${item.menuItem.name} @ R${item.unitPrice.toFixed(2)}\n${optionsText ? optionsText + "\n" : ""}`;
+    }).join("");
+
+    const receiptContent = `
+=========================================
+👑 KRISPY KING OFFICIAL REMOTE RECEIPT 👑
+=========================================
+Order ID:   ${order.id}
+Pass Code:  ${order.passCode}
+Pickup PIN: ${order.verificationPin || "N/A"}
+Customer:   ${order.customerName}
+Placed On:  ${dateStr}
+Status:     ${order.status.toUpperCase()}
+=========================================
+ITEMIZED BILL:
+${itemsLines}
+=========================================
+SUBTOTAL:   R${order.total.toFixed(2)}
+TAX (VAT):  INCLUDED
+TOTAL DUE:  R${order.total.toFixed(2)}
+=========================================
+INSTRUCTIONS:
+1. Show this receipt or QR code to the 
+   cashier at the pickup counter.
+2. Settle payment inside the shop.
+3. Verify order with pickup PIN: ${order.verificationPin || "N/A"}
+4. Enjoy your steaming hot flame-grilled chicken!
+
+Thank you for choosing Krispy King!
+=========================================
+`;
+
+    const blob = new Blob([receiptContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Krispy_King_Receipt_${order.passCode}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast("Text Receipt downloaded!", "success");
+  };
+
+  // Download Beautiful Vector Pass Image (SVG)
+  const handleDownloadSvgPass = (order: Order) => {
+    playBeep(880, "sine", 0.08);
+    
+    const itemsText = order.items.map((item, i) => {
+      if (i > 3) return ""; 
+      return `<text x="40" y="${280 + i * 22}" font-family="monospace" font-size="12" fill="#4B5563" font-weight="bold">${item.quantity}x ${item.menuItem.name.substring(0, 25)}</text>`;
+    }).join("");
+
+    const extraItems = order.items.length > 4 ? `<text x="40" y="375" font-family="monospace" font-size="10" fill="#9CA3AF" font-weight="bold">...and ${order.items.length - 4} more items</text>` : "";
+
+    const svgContent = `
+<svg width="400" height="520" viewBox="0 0 400 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="520" rx="24" fill="#FFFFFF"/>
+  <rect x="2" y="2" width="396" height="516" rx="22" stroke="#E5E7EB" stroke-width="4"/>
+  <rect x="10" y="10" width="380" height="500" rx="14" stroke="#E2B13C" stroke-width="2" stroke-dasharray="6 4"/>
+  
+  <path d="M10 24C10 16.268 16.268 10 24 10H376C383.732 10 390 16.268 390 24V100H10V24Z" fill="#000000"/>
+  <rect x="10" y="96" width="380" height="8" fill="#E11D48"/>
+  
+  <text x="200" y="45" font-family="sans-serif" font-weight="900" font-size="18" fill="#E2B13C" text-anchor="middle" letter-spacing="2">KRISPY KING</text>
+  <text x="200" y="70" font-family="sans-serif" font-weight="bold" font-size="11" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">HOT PICKUP PASS</text>
+  
+  <rect x="40" y="125" width="320" height="70" rx="12" fill="#F3F4F6"/>
+  <text x="200" y="145" font-family="sans-serif" font-weight="bold" font-size="10" fill="#9CA3AF" text-anchor="middle" letter-spacing="1">YOUR UNIQUE PASS CODE</text>
+  <text x="200" y="178" font-family="monospace" font-weight="900" font-size="28" fill="#111827" text-anchor="middle" letter-spacing="2">${order.passCode}</text>
+  
+  <rect x="40" y="210" width="320" height="50" rx="12" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="70" y="240" font-family="sans-serif" font-weight="800" font-size="11" fill="#92400E">PICKUP PIN: ${order.verificationPin || "N/A"}</text>
+  <text x="330" y="240" font-family="sans-serif" font-weight="800" font-size="11" fill="#B91C1C" text-anchor="end">STATUS: ${order.status.toUpperCase()}</text>
+  
+  ${itemsText}
+  ${extraItems}
+  
+  <line x1="40" y1="390" x2="360" y2="390" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text x="40" y="415" font-family="sans-serif" font-weight="bold" font-size="12" fill="#4B5563">TOTAL VALUE</text>
+  <text x="360" y="415" font-family="sans-serif" font-weight="900" font-size="16" fill="#B91C1C" text-anchor="end">R${order.total.toFixed(2)}</text>
+  
+  <text x="200" y="455" font-family="sans-serif" font-weight="bold" font-size="9" fill="#9CA3AF" text-anchor="middle">SHOW PASS OR SCAN AT REGISTER TO COLLECT MEAL</text>
+  <text x="200" y="475" font-family="sans-serif" font-weight="bold" font-size="9" fill="#9CA3AF" text-anchor="middle">CUSTOMER NAME: ${order.customerName.toUpperCase()}</text>
+  <text x="200" y="495" font-family="sans-serif" font-weight="800" font-size="9" fill="#E2B13C" text-anchor="middle">★ THANKS FOR YOUR PATRONAGE ★</text>
+</svg>
+`;
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Krispy_King_Pass_${order.passCode}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast("SVG Digital Pass downloaded!", "success");
   };
 
   // Get active order status on customer display
@@ -1653,14 +1774,41 @@ export default function App() {
                   </div>
 
                   {/* Monospace Code Display */}
-                  <div className="bg-black text-gold p-6 rounded-2xl border-2 border-chicken-red space-y-2">
-                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Your Code</span>
+                  <div className="bg-black text-gold p-5 rounded-2xl border-2 border-chicken-red space-y-2">
+                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest font-black">Your Code</span>
                     <span className="block text-3xl font-mono font-black tracking-wider text-white">
                       {customerActiveOrder.passCode}
                     </span>
-                    <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-wider">
-                      Name: {customerActiveOrder.customerName}
+                    <div className="border-t border-gray-800 my-1 pt-2 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-300">
+                      <span>Name: {customerActiveOrder.customerName}</span>
+                      <span className="text-gold">Total: R{customerActiveOrder.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* 🔑 Pickup Verification PIN Display Panel */}
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-dashed border-gold rounded-2xl p-4 text-center space-y-2">
+                    <span className="block text-[10px] font-black uppercase text-amber-800 tracking-wider">
+                      🛡️ Secure Pickup Verification PIN
                     </span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {customerActiveOrder.verificationPin ? (
+                        customerActiveOrder.verificationPin.split("").map((digit, i) => (
+                          <span 
+                            key={i} 
+                            className="w-10 h-11 bg-white border-2 border-gold text-black rounded-lg flex items-center justify-center text-lg font-mono font-black shadow-sm"
+                          >
+                            {digit}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="font-mono text-sm text-gray-500 uppercase font-bold">
+                          None assigned
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-500 font-bold leading-normal uppercase">
+                      Present this 4-Digit PIN or QR code to the cashier to verify and complete your food pickup.
+                    </p>
                   </div>
 
                   {/* QR Code */}
@@ -1677,8 +1825,94 @@ export default function App() {
                     </span>
                   </div>
 
+                  {/* Download actions */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleDownloadSvgPass(customerActiveOrder)}
+                      className="py-2.5 bg-black hover:bg-gray-950 text-gold border border-gold font-black uppercase text-[10px] tracking-wider rounded-xl transition flex items-center justify-center gap-1.5 shadow"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download Pass (SVG)
+                    </button>
+                    <button
+                      onClick={() => handleDownloadTextReceipt(customerActiveOrder)}
+                      className="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 font-black uppercase text-[10px] tracking-wider rounded-xl transition flex items-center justify-center gap-1.5 shadow"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Save Receipt Text
+                    </button>
+                  </div>
+
+                  {/* Customer Self-Verification flow */}
+                  {customerActiveOrder.status === "verified" && (
+                    <div className="bg-amber-50 border border-gold rounded-2xl p-4 text-center space-y-3">
+                      <span className="block text-[10px] font-black uppercase text-amber-800 tracking-wider">
+                        ⚡ Self-Service Counter Checkout
+                      </span>
+                      {!showSelfVerifyInput ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSelfVerifyInput(true);
+                            setSelfVerifyInputPin("");
+                            playBeep(650, "sine", 0.05);
+                          }}
+                          className="w-full py-2 bg-black hover:bg-gray-900 text-gold border border-gold font-black uppercase text-[10px] tracking-wider rounded-lg transition animate-bounce"
+                        >
+                          Counter Self-Verification
+                        </button>
+                      ) : (
+                        <div className="space-y-2 text-left">
+                          <label className="block text-[9px] font-black uppercase text-gray-500">
+                            Enter 4-Digit Staff Counter PIN:
+                          </label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="password"
+                              maxLength={4}
+                              placeholder="••••"
+                              value={selfVerifyInputPin}
+                              onChange={(e) => setSelfVerifyInputPin(e.target.value)}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-center font-mono font-black text-sm tracking-widest focus:ring-1 focus:ring-gold focus:outline-none bg-white text-black"
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (selfVerifyInputPin === "8034") {
+                                  playBeep(1000, "sine", 0.12);
+                                  await updateOrderStatus(customerActiveOrder.id, "completed");
+                                  setShowSelfVerifyInput(false);
+                                  setSelfVerifyInputPin("");
+                                  triggerToast("Order successfully completed!", "success");
+                                } else {
+                                  playBeep(180, "sawtooth", 0.25);
+                                  triggerToast("Invalid Staff PIN. Ask register staff.", "error");
+                                  setSelfVerifyInputPin("");
+                                }
+                              }}
+                              className="px-4 py-1.5 bg-black text-gold border border-gold font-black text-[10px] uppercase rounded-lg hover:bg-gray-950"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowSelfVerifyInput(false);
+                                setSelfVerifyInputPin("");
+                                playBeep(300, "sine", 0.05);
+                              }}
+                              className="px-3 py-1.5 bg-gray-100 text-gray-600 font-bold text-[10px] uppercase rounded-lg hover:bg-gray-200"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Dynamic counter order timer */}
-                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-150 inline-flex items-center gap-2 text-xs font-bold text-gray-600">
+                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-150 inline-flex items-center gap-2 text-xs font-bold text-gray-600 w-full justify-center">
                     <Clock className="w-4 h-4 text-chicken-red" />
                     <span>Placed: {formatOrderTime(customerActiveOrder.createdAt)}</span>
                   </div>
@@ -1891,6 +2125,17 @@ export default function App() {
                     >
                       🔥 Placard QR
                     </button>
+                    <button
+                      onClick={() => {
+                        setActiveStaffTab("training");
+                        playBeep(650, "sine", 0.03);
+                      }}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider whitespace-nowrap transition ${
+                        activeStaffTab === "training" ? "bg-chicken-red text-white" : "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                      }`}
+                    >
+                      📖 Staff Guide
+                    </button>
                   </div>
                 </div>
 
@@ -1994,10 +2239,14 @@ export default function App() {
                                   )}
                                   {order.status === "verified" && (
                                     <button
-                                      onClick={() => updateOrderStatus(order.id, "completed")}
+                                      onClick={() => {
+                                        playBeep(800, "sine", 0.05);
+                                        setPinVerificationOrder(order);
+                                        setEnteredVerificationPin("");
+                                      }}
                                       className="col-span-3 py-1.5 bg-black hover:bg-gray-900 text-gold font-black uppercase text-[10px] tracking-wider rounded border border-gold transition"
                                     >
-                                      Mark Completed
+                                      Verify & Complete
                                     </button>
                                   )}
                                   {order.status !== "completed" && order.status !== "cancelled" && (
@@ -2159,13 +2408,13 @@ export default function App() {
                           {searchedOrder.status === "verified" && (
                             <button
                               onClick={() => {
-                                updateOrderStatus(searchedOrder.id, "completed");
-                                setSearchedOrder(null);
-                                setManualCodeInput("");
+                                playBeep(800, "sine", 0.05);
+                                setPinVerificationOrder(searchedOrder);
+                                setEnteredVerificationPin("");
                               }}
                               className="col-span-2 py-2 bg-black hover:bg-gray-900 text-gold font-black uppercase text-[10px] tracking-wider rounded-lg border border-gold transition"
                             >
-                              Complete Pickup
+                              Verify Code & Complete
                             </button>
                           )}
                           <button
@@ -2723,6 +2972,185 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* TAB: Comprehensive Training Guide */}
+                {activeStaffTab === "training" && (
+                  <div className="bg-white rounded-2xl border p-5 md:p-6 space-y-6 shadow-sm">
+                    <div className="border-b pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="text-left">
+                        <h3 className="text-xl font-black text-black uppercase tracking-tight flex items-center gap-2">
+                          <BookOpen className="w-5 h-5 text-chicken-red animate-pulse" />
+                          <span>Official Operational Training Manual</span>
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Comprehensive standard operating procedures for Krispy King Remote Ordering System
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 self-start md:self-center">
+                        <span className="px-2.5 py-1 bg-black text-gold text-[10px] font-black uppercase rounded border border-gold">
+                          V2.0 LIVE DOC
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                      {/* Sub-navigation inside manual */}
+                      <div className="space-y-1.5 lg:col-span-1">
+                        <span className="block text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 px-2 text-left">
+                          Manual Sections
+                        </span>
+                        {[
+                          { id: "intro", title: "👑 1. Overview & Mission" },
+                          { id: "arch", title: "⚡ 2. System Architecture" },
+                          { id: "cust", title: "🛒 3. Customer Workflow" },
+                          { id: "staff", title: "🧑‍🍳 4. Staff Operations" },
+                          { id: "sec", title: "🔒 5. Security & Overrides" },
+                        ].map((sec) => (
+                          <button
+                            key={sec.id}
+                            type="button"
+                            onClick={() => {
+                              const element = document.getElementById(`manual-${sec.id}`);
+                              if (element) {
+                                element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                              }
+                              playBeep(600, "sine", 0.03);
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-100 hover:text-black transition flex items-center justify-between border border-transparent hover:border-gray-200"
+                          >
+                            <span>{sec.title}</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Content panel */}
+                      <div className="lg:col-span-3 space-y-8 max-h-[500px] overflow-y-auto pr-2 border-l lg:pl-6 text-left">
+                        
+                        {/* Section 1 */}
+                        <div id="manual-intro" className="space-y-3 pb-6 border-b">
+                          <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
+                            👑 1. System Overview & Mission
+                          </h4>
+                          <div className="text-xs text-gray-700 space-y-2 font-medium leading-relaxed">
+                            <p>
+                              The <strong>Krispy King Remote Ordering System</strong> is a real-time, zero-friction queue-busting ecosystem. It allows patrons to scan a table/counter QR placard, browse our full flame-grilled menu, customize options, and instantly place a pre-order from their mobile device.
+                            </p>
+                            <p>
+                              The system operates with absolute live synchronicity: as soon as a customer places an order, a <strong>Digital Pickup Pass</strong> containing a unique <strong>QR Code</strong> and a secure <strong>4-Digit Verification PIN</strong> is generated. Simultaneously, the order appears with high-priority audio alerts on all connected <strong>Staff Terminals</strong> via real-time cloud data streams.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Section 2 */}
+                        <div id="manual-arch" className="space-y-3 pb-6 border-b">
+                          <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
+                            ⚡ 2. Core System Architecture
+                          </h4>
+                          <div className="text-xs text-gray-700 space-y-2 font-medium leading-relaxed">
+                            <p>The platform is built using a lightning-fast full-stack architecture:</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li><strong>Frontend</strong>: React 18 with Vite, designed for desktop-first precision and fully responsive fluid mobile touch optimization.</li>
+                              <li><strong>Styling & Theme</strong>: Modern Tailwind CSS featuring the signature high-impact <strong>Fiery Crimson & Royal Gold</strong> aesthetics.</li>
+                              <li><strong>Real-time Database</strong>: Google Firebase Firestore with real-time listeners (<code>onSnapshot</code>) to push notifications across devices instantly.</li>
+                              <li><strong>Interactive Sound Synthesis</strong>: Built-in Web Audio API synthesizer that generates distinctive beep notifications for state changes without needing external audio file dependencies.</li>
+                              <li><strong>QR Engine</strong>: SVG-based high-density vector matrix generator for seamless counter scanning.</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Section 3 */}
+                        <div id="manual-cust" className="space-y-3 pb-6 border-b">
+                          <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
+                            🛒 3. Customer Ordering Workflow
+                          </h4>
+                          <div className="text-xs text-gray-700 space-y-3 font-medium leading-relaxed">
+                            <p className="font-bold">Step 3.1: Menu Browsing & Customization</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>Patrons browse categorized items (Burgers, Combos, Family Meals, Kiddies, Breakfast, etc.).</li>
+                              <li>Breakfast items are automatically filtered and dynamically made available depending on the local morning hours (6:00 AM - 11:00 AM).</li>
+                              <li>Items with customizable <strong>Combo Choices</strong> update prices dynamically.</li>
+                              <li>Interactive heat-meter gauges highlight item spiciness levels.</li>
+                            </ul>
+                            
+                            <p className="font-bold">Step 3.2: Secure Checkout & Pass Generation</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>To minimize friction, the customer does not need to create an email/password account.</li>
+                              <li>They simply enter their first name or nickname on the Cart Drawer sheet and submit.</li>
+                              <li>The system immediately generates a unique **Pass Code** (e.g. <code>KK-B8A29F</code>) and a random **4-Digit Verification PIN** (e.g. <code>4819</code>), commits it to Firestore, and saves it to local device storage.</li>
+                            </ul>
+
+                            <p className="font-bold">Step 3.3: Digital Pass Screen & Downloads</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li><strong>Order Status Tracker</strong>: Blinks with active colors (orange for Pending, green for Verified, blue for Completed).</li>
+                              <li><strong>Download Actions</strong>: Customers can click <strong>Download Pass (SVG)</strong> or <strong>Save Receipt Text</strong> to save their proof of order offline.</li>
+                              <li><strong>Verification PIN</strong>: Shown clearly on their screen. They must show this to the staff or enter the Staff PIN <code>8034</code> to self-verify.</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Section 4 */}
+                        <div id="manual-staff" className="space-y-3 pb-6 border-b">
+                          <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
+                            🧑‍🍳 4. Staff Dashboard Portal Operations
+                          </h4>
+                          <div className="text-xs text-gray-700 space-y-3 font-medium leading-relaxed">
+                            <p>The Staff Portal is accessed by clicking the <strong>Krispy King Crown Logo</strong> at the top header 5 times and entering the master Staff security PIN: <strong>8034</strong>.</p>
+                            
+                            <p className="font-bold">Tab 4.1: Live Orders Feed</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>An interactive real-time dashboard displaying all incoming customer requests.</li>
+                              <li><strong>Audio Beep Alerts</strong>: Plays a triple rising chime (C5 ➔ E5 ➔ G5) on new pending orders.</li>
+                              <li><strong>Verify Payment</strong>: Sets status to Verified (payment settled at register).</li>
+                              <li><strong>Verify & Complete</strong>: Prompts cashier to enter the customer's 4-digit PIN to finalize.</li>
+                            </ul>
+
+                            <p className="font-bold">Tab 4.2: QR Pass Verification & Code Entry</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li><strong>QR Viewfinder Simulator</strong>: Emulates a high-speed camera scanner with laser beep sounds.</li>
+                              <li><strong>Manual Search</strong>: Type passcodes to pull up order details instantly.</li>
+                              <li><strong>🛡️ Secure PIN Verification Step</strong>: Prompted upon completion, requiring the customer's 4-digit Pickup PIN or staff override.</li>
+                            </ul>
+
+                            <p className="font-bold">Tab 4.3: Tabletop Placard QR Generator</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>Configure target landing URL and themes (Fiery Crimson, Midnight Royal, Matte Charcoal).</li>
+                              <li>A4 / Letter layout with printer guides. Enable background graphics and turn off headers/footers for a perfect full-bleed poster!</li>
+                            </ul>
+
+                            <p className="font-bold">Tab 4.4: Menu Availability Manager</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>Toggle stock availability. Sold out items show instant gray overlays on the customer side.</li>
+                            </ul>
+
+                            <p className="font-bold">Tab 4.5: Sales Summary & Analytics</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li>Real-time gross revenue metrics, total active/completed counters, and product popularity charts.</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Section 5 */}
+                        <div id="manual-sec" className="space-y-3">
+                          <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
+                            🔒 5. Security & Overrides
+                          </h4>
+                          <div className="text-xs text-gray-700 space-y-2 font-medium leading-relaxed">
+                            <p>
+                              The system is hardened against unauthorized completion using dual-key pin validation:
+                            </p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              <li><strong>Master Security PIN</strong>: <code>8034</code>.</li>
+                              <li>This PIN can bypass/override customer verification prompts at the counter or complete customer-side self-checkouts.</li>
+                              <li>All sound synthesis runs natively through the Web Audio API, allowing hardware buzzer emulation.</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2862,6 +3290,154 @@ export default function App() {
               setSelectedSpiceLevel(item.spiceLevel || 1);
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ==============================================
+           SECURE PIN VERIFICATION CHALLENGE MODAL
+           ============================================== */}
+      <AnimatePresence>
+        {pinVerificationOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-sm bg-black text-white rounded-3xl border-2 border-gold shadow-2xl p-6 space-y-6 relative overflow-hidden text-left"
+            >
+              {/* Golden security header */}
+              <div className="text-center space-y-1.5 pb-3 border-b border-gray-800">
+                <div className="w-12 h-12 bg-gold/10 border border-gold rounded-full flex items-center justify-center mx-auto text-gold animate-pulse">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-gold">Secure PIN Verification</h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                  Verifying Order: {pinVerificationOrder.passCode}
+                </p>
+              </div>
+
+              {/* Order quick overview */}
+              <div className="bg-gray-900/80 rounded-2xl p-3.5 border border-gray-800 text-xs space-y-1">
+                <div className="flex justify-between font-bold text-gray-300 border-b border-gray-800 pb-1 mb-1">
+                  <span>Customer: {pinVerificationOrder.customerName}</span>
+                  <span className="text-gold font-black">R{pinVerificationOrder.total.toFixed(2)}</span>
+                </div>
+                <div className="max-h-20 overflow-y-auto pr-1 text-gray-400 font-semibold uppercase text-[10px] space-y-0.5">
+                  {pinVerificationOrder.items.map((item, i) => (
+                    <div key={i} className="flex justify-between">
+                      <span>{item.quantity}x {item.menuItem.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pin Display digits */}
+              <div className="space-y-2">
+                <label className="block text-[9px] font-black uppercase text-gray-400 tracking-widest text-center">
+                  Enter 4-Digit Pickup PIN
+                </label>
+                <div className="flex justify-center gap-3">
+                  {[0, 1, 2, 3].map((idx) => {
+                    const char = enteredVerificationPin[idx] || "";
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-12 h-14 rounded-xl border-2 bg-gray-950 flex items-center justify-center text-2xl font-mono font-black ${
+                          char ? "border-gold text-gold" : "border-gray-800 text-gray-600"
+                        }`}
+                      >
+                        {char ? "•" : ""}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Interactive Staff Keypad */}
+              <div className="grid grid-cols-3 gap-2 max-w-[260px] mx-auto">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      if (enteredVerificationPin.length < 4) {
+                        playBeep(700, "sine", 0.03);
+                        setEnteredVerificationPin((prev) => prev + num);
+                      }
+                    }}
+                    className="h-11 bg-gray-900 hover:bg-gray-800 text-white font-black text-lg rounded-xl border border-gray-800 active:scale-95 transition"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playBeep(300, "sine", 0.05);
+                    setEnteredVerificationPin("");
+                  }}
+                  className="h-11 bg-red-950/40 hover:bg-red-900/40 text-red-400 font-bold text-xs rounded-xl border border-red-900/30 flex items-center justify-center"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (enteredVerificationPin.length < 4) {
+                      playBeep(700, "sine", 0.03);
+                      setEnteredVerificationPin((prev) => prev + "0");
+                    }
+                  }}
+                  className="h-11 bg-gray-900 hover:bg-gray-800 text-white font-black text-lg rounded-xl border border-gray-800 active:scale-95 transition"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    // Check PIN
+                    const isSuccess = 
+                      enteredVerificationPin === pinVerificationOrder.verificationPin || 
+                      enteredVerificationPin === "8034";
+
+                    if (isSuccess) {
+                      playBeep(1000, "sine", 0.12);
+                      await updateOrderStatus(pinVerificationOrder.id, "completed");
+                      setPinVerificationOrder(null);
+                      setEnteredVerificationPin("");
+                      setSearchedOrder(null);
+                      setManualCodeInput("");
+                    } else {
+                      playBeep(180, "sawtooth", 0.25);
+                      triggerToast("Incorrect verification PIN. Access denied.", "error");
+                      setEnteredVerificationPin("");
+                    }
+                  }}
+                  disabled={enteredVerificationPin.length < 4}
+                  className={`h-11 font-black text-xs uppercase rounded-xl border flex items-center justify-center tracking-wider active:scale-95 transition ${
+                    enteredVerificationPin.length === 4
+                      ? "bg-green-600 hover:bg-green-700 text-white border-green-500 shadow-md shadow-green-900/20"
+                      : "bg-gray-950 text-gray-500 border-gray-900 cursor-not-allowed"
+                  }`}
+                >
+                  Verify
+                </button>
+              </div>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playBeep(300, "sine", 0.05);
+                  setPinVerificationOrder(null);
+                  setEnteredVerificationPin("");
+                }}
+                className="w-full py-2 bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition border border-gray-850"
+              >
+                Cancel / Return
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

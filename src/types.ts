@@ -42,6 +42,7 @@ export interface Order {
   createdAt: number; // timestamp
   verifiedAt?: number;
   completedAt?: number;
+  verificationPin?: string; // 4-digit verification code (e.g., "4821")
 }
 
 export interface StaffSession {
