@@ -7,7 +7,7 @@ interface ItemDetailsModalProps {
   item: MenuItem | null;
   available: boolean;
   onClose: () => void;
-  onAdd: (item: MenuItem, spiceOver?: number) => void;
+  onAdd: (item: MenuItem, spiceOver?: number, sauceOver?: string) => void;
   onCustomize: (item: MenuItem) => void;
 }
 
@@ -21,6 +21,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
   const [selectedSpice, setSelectedSpice] = useState<number>(() => {
     return item?.spiceLevel || 0;
   });
+  const [selectedSauce, setSelectedSauce] = useState<string>("No Sauce");
   const [imageError, setImageError] = useState(false);
 
   if (!item) return null;
@@ -29,7 +30,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
     if (item.isCombo || item.category === "Meals & Combos") {
       onCustomize(item);
     } else {
-      onAdd(item, selectedSpice);
+      onAdd(item, selectedSpice, selectedSauce);
     }
     onClose();
   };
@@ -158,6 +159,35 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                     }`}
                   >
                     {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sauce selection (for all food items: i.e., category is not Beverages or Mocktails) */}
+          {available && item.category !== "Beverages" && item.category !== "Mocktails" && (
+            <div className="space-y-3 bg-amber-50/50 border border-amber-100 p-4 rounded-xl">
+              <label className="block text-xs font-black uppercase text-amber-800 tracking-wider flex items-center gap-1 font-semibold">
+                🍯 Select Your Sauce Option (comes on the side)
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "No Sauce", value: "No Sauce" },
+                  { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                  { label: "Reaper 🌶️", value: "Carolina Reaper Sauce (on the side)" }
+                ].map((sauceItem, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedSauce(sauceItem.value)}
+                    className={`py-2 px-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-center border transition-all duration-150 ${
+                      selectedSauce === sauceItem.value
+                        ? "bg-amber-500 text-white border-amber-500 shadow"
+                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
+                    }`}
+                  >
+                    {sauceItem.label}
                   </button>
                 ))}
               </div>

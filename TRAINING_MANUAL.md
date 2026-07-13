@@ -1,113 +1,102 @@
-# 👑 KRISPY KING: REMOTE ORDERING SYSTEM
-## 📄 OFFICIAL OPERATIONS & TRAINING MANUAL (V2.0)
-*For Customers, Front-of-House Cashiers, Kitchen Managers, and Administrators*
+# 👑 KRISPY KING OPERATIONAL TRAINING MANUAL
+## System Version: 2.1 • Security Status: ACTIVE
 
 ---
 
-## 📖 1. SYSTEM OVERVIEW & MISSION
-
-The **Krispy King Remote Ordering System** is a real-time, zero-friction queue-busting ecosystem. It allows patrons to scan a table/counter QR placard, browse our full flame-grilled menu, customize options, and instantly place a pre-order from their mobile device. 
-
-The system operates with absolute live synchronicity: as soon as a customer places an order, a **Digital Pickup Pass** containing a unique **QR Code** and a secure **4-Digit Verification PIN** is generated. Simultaneously, the order appears with high-priority audio alerts on all connected **Staff Terminals** via real-time cloud data streams.
-
----
-
-## ⚡ 2. CORE SYSTEM ARCHITECTURE
-
-The platform is designed using a lightning-fast full-stack architecture:
-1. **Frontend**: React 18 with Vite, designed for desktop-first precision and fully responsive fluid mobile touch optimization.
-2. **Styling & Theme**: Modern Tailwind CSS featuring the signature high-impact **Fiery Crimson & Royal Gold** aesthetics.
-3. **Real-time Database**: Google Firebase Firestore with real-time listeners (`onSnapshot`) to push notifications across devices instantly.
-4. **Interactive Sound Synthesis**: Built-in Web Audio API synthesizer that generates distinctive beep notifications for state changes without needing external audio file dependencies.
-5. **QR Engine**: SVG-based high-density vector matrix generator for seamless counter scanning.
+## 📖 TABLE OF CONTENTS
+1. [SYSTEM OVERVIEW & DESIGN PHILOSOPHY](#1-system-overview--design-philosophy)
+2. [CUSTOMER-FACING FLOW & PLATFORM CORES](#2-customer-facing-flow--platform-cores)
+3. [DIGITAL PASSES & DOWNLOADING GUIDE](#3-digital-passes--downloading-guide)
+4. [STAFF PORTAL OPERATIONS & ORDERS FEED](#4-staff-portal-operations--orders-feed)
+5. [🛡️ SECURE CODE VERIFICATION SYSTEM](#5-secure-code-verification-system)
+6. [🛠️ DEMO OVERRIDES & BYPASS OPERATIONS](#6-demo-overrides--bypass-operations)
 
 ---
 
-## 🛒 3. CUSTOMER ORDERING WORKFLOW
+## 1. SYSTEM OVERVIEW & DESIGN PHILOSOPHY
+The **Krispy King Ordering Engine** is designed to eliminate front-counter order friction, maximize kitchen output, and provide a seamless digital pass workflow for patrons. By combining robust client-side caching with real-time Firestore database synchronization, we achieve extremely high speed and operational resilience.
 
-```
-[Browse Menu] ➔ [Add to Cart] ➔ [Submit Name] ➔ [Generate Digital Pass] ➔ [Show / Download Pass]
-```
-
-### Step 3.1: Menu Browsing & Customization
-- Patrons browse categorized items (Burgers, Combos, Family Meals, Kiddies, Breakfast, etc.).
-- Breakfast items are automatically filtered and dynamically made available depending on the local morning hours (6:00 AM - 11:00 AM).
-- Items with customizable **Combo Choices** (e.g. choice of soft drinks, swap for sides, extra wings) update prices dynamically.
-- Interactive heat-meter gauges highlight item spiciness levels ranging from **Lemon & Herb** 🍋 to **Extra Hot** 🌶️🌶️🌶️.
-
-### Step 3.2: Secure Checkout
-- To minimize friction, the customer does not need to create an email/password account.
-- They simply enter their first name or nickname on the **Cart Drawer** sheet and submit.
-- The system immediately:
-  1. Generates a unique **Pass Code** (e.g., `KK-B8A29F`).
-  2. Generates a secure random **4-Digit Pickup Verification PIN** (e.g., `4819`).
-  3. Commits the record to the Firestore cluster.
-  4. Binds the order locally to the client's device memory under **My Saved Passes** so they can return to it even if they close their browser tab.
-
-### Step 3.3: Digital Pass Screen
-The Digital Pass is the customer's proof of purchase and pickup ticket:
-- **Order Status Tracker**: Live visual tracker blinking with colors indicating the progress:
-  - 🟠 **PENDING**: Awaiting cashier verification & payment settlement.
-  - 🟢 **VERIFIED**: Payment received, order in kitchen preparation.
-  - 🔵 **COMPLETED**: Food successfully handed over to the customer.
-  - 🔴 **CANCELLED**: Order voided.
-- **Pass QR Code**: Displays a readable QR containing the order Pass Code.
-- **Download Actions**:
-  - Customers can tap **Download Pass (SVG)** to download their high-res digital ticket.
-  - Customers can tap **Save Receipt Text** to get a clean, lightweight, printer-friendly text file receipt containing itemizations and totals.
-- **Verification PIN**: A secure 4-digit PIN is displayed. The customer must either:
-  1. Show this PIN to the cashier for manual completion.
-  2. Perform **Self-Verification** at the counter by entering the official **Staff PIN (`8034`)** directly on their phone screen to complete the transaction themselves!
+### Core Architecture Pillars:
+- **Zero-friction onboarding**: Patrons do not need to register with passwords or input sensitive email addresses. They provide a first name/nickname, checkout, and receive an instant digital pickup pass.
+- **Durable cloud persistence**: Active tickets are synchronized in real-time across customers and staff views.
+- **Hardware-buzzer emulation**: All touch interactions, ticket alerts, and scanning activities feature real-time auditory feedback synthesized natively in the browser via the Web Audio API (no heavy external assets required).
 
 ---
 
-## 🧑‍🍳 4. STAFF DASHBOARD PORTAL OPERATIONS
+## 2. CUSTOMER-FACING FLOW & PLATFORM CORES
+Customers interact with a responsive grid menu to build their orders.
 
-The Staff Portal is accessed by clicking the **Krispy King Crown Logo** at the top header 5 times and entering the master Staff security PIN: **`8034`**.
+### 2.1 Category Exploration
+Patrons filter through the available categories, including our specialty lines:
+1. **Grilled Chicken**: Our signature flame-grilled bastings.
+2. **Chicken Paella**:
+   - **1/4 Chicken Paella** (R49.90)
+   - **1/2 Chicken Paella** (R89.90)
+   - **Full Chicken Paella** (R169.90)
+3. **Fried Chicken** & **Krispy Fried Tenders**
+4. **Sides & Extras**, **Beverages**, and **Mocktails**
 
-### Tab 4.1: Live Orders Feed
-An interactive real-time dashboard displaying all incoming customer requests:
-- **Audio Beep Alerts**: When a customer places a new order, the Web Audio Synthesizer triggers a triple rising chime (`C5` ➔ `E5` ➔ `G5`) to alert the kitchen.
-- **Dynamic Status Transitions**:
-  1. **Verify Payment** (Green Button): Changes status from `Pending` to `Verified` (Cash/Card settled at register).
-  2. **Verify & Complete** (Black & Gold Button): Changes status from `Verified` to `Completed` once the order is ready. This button automatically triggers the **Secure Code Verification Step**!
-  3. **Cancel** (Red Border): Instantly voids the order and plays a warning error drop sound on the device.
+### 2.2 Sauce Customization (On-The-Side)
+To accommodate customer taste preferences, **every single food item** on the menu contains a mandatory sauce selector offering:
+- **No Sauce** (Default)
+- **BBQ Sauce (on the side) 🍯**
+- **Carolina Reaper Sauce (on the side) 🌶️**
 
-### Tab 4.2: QR Pass Verification & Code Entry
-For quick queue checkout at the register:
-- **QR Viewfinder Simulator**: Simulates a high-speed camera scanner. Select any active customer pass from the dropdown to emulate a real handheld scanner laser beep!
-- **Manual Search**: Cashiers can type the customer's passcode (e.g. `B8A29F` or `KK-B8A29F`) to pull up details instantly.
-- **🛡️ Secure PIN Verification Step**:
-  - When the cashier clicks **Complete Pickup**, they are prompted with a secure passcode challenge.
-  - They must enter the customer's **4-Digit Pickup Verification PIN** (visible on the customer's pass).
-  - Alternatively, in emergency overrides (e.g., customer phone died), cashiers can enter the master staff code **`8034`** to complete the pickup.
-
-### Tab 4.3: Tabletop Placard QR Generator
-Allows the store manager to print official customer-facing counter signage:
-- **Configurable Destination**: Set the landing URL to the active web app domain.
-- **Theme Branding**: Switch between **Fiery Crimson** (the high-impact signature red), **Midnight Royal** (luxurious deep blue), or **Matte Charcoal** (sleek high-contrast black).
-- **Print Layout**: Optimizes layout for standard **A4 or US Letter** size. Pressing **Print Official Placard** automatically invokes the browser print utility. 
-- *Pro Printer Settings*: Turn off headers/footers and check "Background graphics" inside your system print menu for a seamless full-bleed professional print!
-
-### Tab 4.4: Menu Availability Manager
-- Toggle stock availability for all menu items on-the-fly.
-- When an item is marked "Sold Out", it immediately reflects on the customer's side with a subtle gray overlay and disabled "Add to Cart" triggers, preventing unfulfillable orders.
-
-### Tab 4.5: Sales Summary & Analytics
-- Track real-time statistics including:
-  - **Gross Revenue Collected**
-  - **Order Volume Metrics** (Completed vs. Active vs. Cancelled)
-  - **Itemized Product Popularity Rankings** with progress bars showing which burgers or meals are generating the most sales.
+### 2.3 Dynamic Combo Builder
+When choosing a Meal Combo, the customer accesses an interactive customizer drawer to:
+1. Choose their side (e.g. Regular Fries, Spicy Rice, Onion Rings).
+2. Choose their beverage (e.g. Soft Drink, Juice, Water).
+3. Select their spice level (Lemon & Herb, Mild, Hot, Extra Hot).
+4. Select their sauce option (No Sauce, BBQ, Carolina Reaper) which comes on the side.
 
 ---
 
-## 🔒 5. SECURITY & STAFF PIN REFERENCE
+## 3. DIGITAL PASSES & DOWNLOADING GUIDE
+Once the customer inputs their name on the checkout sheet and submits, the system generates a unique **Pass Code** (e.g. `KK-8E2B`) and a random secure **4-Digit Verification PIN** (e.g. `4819`).
 
-- **Master Security PIN**: `8034`
-- This PIN is used to:
-  1. Login to the **Staff Dashboard Portal**.
-  2. Bypass / override manual customer pickup challenges at the register.
-  3. Perform customer **Self-Verification** at the counter on their own mobile devices.
+### 3.1 Digital Pass Interface
+The Digital Pass page contains three core segments:
+- **Order Status Tracker**: Blinks dynamically based on current status:
+  - **PENDING (Orange)**: Settle cash or card payment at the physical counter.
+  - **VERIFIED (Green)**: Payment received, kitchen actively preparing meal.
+  - **COMPLETED (Blue)**: Order successfully collected.
+- **Interactive QR Code**: Rendered in SVG for cashiers to scan with the counter viewfinder.
+- **Offline Download Actions**:
+  - **Download Pass (SVG)**: Downloads a high-resolution Vector Graphic Pass. This pass is fully stylized and self-contained, allowing customers to show it at the counter even if they completely lose internet access.
+  - **Save Receipt Text**: Generates and downloads a clean, plain-text remote receipt containing all itemizations, options, and pickup instructions.
 
 ---
-*End of Manual. Confidential - For Internal Krispy King Personnel Only.*
+
+## 4. STAFF PORTAL OPERATIONS & ORDERS FEED
+Staff access the terminal dashboard to manage active queues. To log into the staff view, click the **Staff Entry** option in the app navigation.
+
+### 4.1 Real-Time Orders Feed
+The Active Orders Feed lists all incoming orders chronologically.
+- **Audio Alerts**: On every incoming order, the staff console emits a dual-tone alert beep to alert line cooks.
+- **Status Filtering**: Orders are divided into active columns or sorted by status (Pending -> Verified -> Completed) for convenient queue management.
+
+### 4.2 Order Processing Actions
+- **Verify Payment**: For "Pending" orders, clicking this verifies the patron paid cash or card at the counter, which updates the status to "Verified" (Green) and plays a chime.
+- **Verify & Complete**: For "Verified" orders, clicking this launches the **Secure PIN Verification Challenge**.
+
+---
+
+## 5. 🛡️ SECURE CODE VERIFICATION SYSTEM
+To prevent food theft and verify that the correct patron receives their hot chicken, we enforce two secure code verification pipelines:
+
+### 5.1 Staff Challenge (Pickup PIN Verification)
+When staff click **Verify & Complete** on a verified order, the terminal prompts a numeric keypad.
+- Staff must enter the customer's unique **4-digit Pickup PIN** (displayed on the customer's phone or downloadable pass).
+- Entering the correct PIN completes the order, logs the pickup timestamp, and clears the ticket.
+- **Staff Master Override PIN**: Cashiers can bypass customer PIN checks by entering the secure master PIN **`8034`** on the terminal.
+
+### 5.2 Customer Self-Verification Checkout
+At self-service counters, customers can complete their own pickup. On their active pass view, a **Counter Self-Verification** option is displayed:
+- The customer clicks the button and is prompted to enter either the **Staff Counter PIN (`8034`)** or their own **Pickup PIN** to mark the order as completed.
+
+---
+
+## 6. 🛠️ DEMO OVERRIDES & BYPASS OPERATIONS
+To facilitate easy testing and demos, several manual override mechanisms are built into the app:
+- **Breakfast Hours Bypass**: Breakfast menu items are automatically locked outside of 6:00 AM - 11:00 AM. Click **Bypass Time Constraint (Demo)** inside the Breakfast category list to unlock breakfast ordering immediately.
+- **QR Viewfinder Simulator**: Under the staff's **Verify Pass** tab, staff can simulate camera QR scanning. Choose an active customer order from the dropdown, then click **Simulate Scanner Beep** to mock a high-speed hardware QR scan.

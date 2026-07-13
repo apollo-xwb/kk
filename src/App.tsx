@@ -53,6 +53,7 @@ import { db } from "./firebase";
 
 const MENU_CATEGORIES = [
   "Grilled Chicken",
+  "Chicken Paella",
   "Fried Chicken",
   "Krispy Fried Tenders",
   "Krispy Fried Wings",
@@ -368,6 +369,7 @@ export default function App() {
 
   const [comboSelections, setComboSelections] = useState<Record<string, { label: string; priceModifier: number }>>({});
   const [selectedSpiceLevel, setSelectedSpiceLevel] = useState<number>(1); // default Mild for spice-indicator items
+  const [selectedComboSauce, setSelectedComboSauce] = useState<string>("No Sauce");
 
   // --- Toast Trigger helper ---
   const triggerToast = (text: string, type: "success" | "info" | "error" = "success") => {
@@ -416,12 +418,18 @@ export default function App() {
   }, [cart]);
 
   // Handle adding non-combo items or items with plain spice
-  const handleAddToCart = (item: MenuItem, spiceOver?: number) => {
+  const handleAddToCart = (item: MenuItem, spiceOver?: number, sauceOver?: string) => {
     playBeep(880, "sine", 0.05);
     const resolvedSpice = spiceOver !== undefined ? spiceOver : (item.spiceLevel || 0);
     const selectedSpiceLabel = resolvedSpice === 1 ? "Mild 🌶️" : resolvedSpice === 2 ? "Hot 🌶️🌶️" : resolvedSpice === 3 ? "Extra Hot 🌶️🌶️🌶️" : "Lemon & Herb 🍋";
     
-    const cartKey = resolvedSpice > 0 ? { "Spice Level": selectedSpiceLabel } : undefined;
+    const cartKey: Record<string, string> = {};
+    if (resolvedSpice > 0) {
+      cartKey["Spice Level"] = selectedSpiceLabel;
+    }
+    if (item.category !== "Beverages" && item.category !== "Mocktails") {
+      cartKey["Sauce Option"] = sauceOver || "No Sauce";
+    }
     
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
@@ -465,6 +473,11 @@ export default function App() {
     if (selectedComboItem.spiceLevel !== undefined) {
       const labels = ["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
       selectedOptionsRecord["Spice Level"] = labels[selectedSpiceLevel];
+    }
+
+    // Add sauce option if food item
+    if (selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails") {
+      selectedOptionsRecord["Sauce Option"] = selectedComboSauce || "No Sauce";
     }
 
     const calculatedUnitPrice = selectedComboItem.price + addedPrice;
@@ -1315,6 +1328,7 @@ Thank you for choosing Krispy King!
                         }
                         setComboSelections(initOpts);
                         setSelectedSpiceLevel(item.spiceLevel || 1);
+                        setSelectedComboSauce("No Sauce");
                       }}
                       onSelect={(item) => {
                         playBeep(650, "sine", 0.03);
@@ -1864,7 +1878,7 @@ Thank you for choosing Krispy King!
                       ) : (
                         <div className="space-y-2 text-left">
                           <label className="block text-[9px] font-black uppercase text-gray-500">
-                            Enter 4-Digit Staff Counter PIN:
+                            Enter 4-Digit Staff PIN or Pickup PIN:
                           </label>
                           <div className="flex gap-1.5">
                             <input
@@ -1878,7 +1892,11 @@ Thank you for choosing Krispy King!
                             <button
                               type="button"
                               onClick={async () => {
-                                if (selfVerifyInputPin === "8034") {
+                                const isSuccess = 
+                                  selfVerifyInputPin === "8034" || 
+                                  selfVerifyInputPin === customerActiveOrder.verificationPin;
+
+                                if (isSuccess) {
                                   playBeep(1000, "sine", 0.12);
                                   await updateOrderStatus(customerActiveOrder.id, "completed");
                                   setShowSelfVerifyInput(false);
@@ -1886,7 +1904,7 @@ Thank you for choosing Krispy King!
                                   triggerToast("Order successfully completed!", "success");
                                 } else {
                                   playBeep(180, "sawtooth", 0.25);
-                                  triggerToast("Invalid Staff PIN. Ask register staff.", "error");
+                                  triggerToast("Invalid PIN. Access denied.", "error");
                                   setSelfVerifyInputPin("");
                                 }
                               }}
@@ -3067,7 +3085,8 @@ Thank you for choosing Krispy King!
                           <div className="text-xs text-gray-700 space-y-3 font-medium leading-relaxed">
                             <p className="font-bold">Step 3.1: Menu Browsing & Customization</p>
                             <ul className="list-disc pl-5 space-y-1">
-                              <li>Patrons browse categorized items (Burgers, Combos, Family Meals, Kiddies, Breakfast, etc.).</li>
+                              <li>Patrons browse categorized items including our signature <strong>Chicken Paella</strong> category (1/4 Paella for R49.90, 1/2 Paella for R89.90, and Full Paella for R169.90).</li>
+                              <li>Every food item includes a mandatory <strong>Sauce Selection</strong> for BBQ or Carolina Reaper sauce which comes on the side.</li>
                               <li>Breakfast items are automatically filtered and dynamically made available depending on the local morning hours (6:00 AM - 11:00 AM).</li>
                               <li>Items with customizable <strong>Combo Choices</strong> update prices dynamically.</li>
                               <li>Interactive heat-meter gauges highlight item spiciness levels.</li>
@@ -3217,6 +3236,38 @@ Thank you for choosing Krispy King!
                   </div>
                 )}
 
+                {/* Sauce Selector Option for all food items in combo */}
+                {selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails" && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
+                      🍯 SELECT YOUR SAUCE OPTION (ON THE SIDE):
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { label: "No Sauce", value: "No Sauce" },
+                        { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                        { label: "Reaper 🌶️", value: "Carolina Reaper Sauce (on the side)" }
+                      ].map((item, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            playBeep(600 + idx * 50, "sine", 0.04);
+                            setSelectedComboSauce(item.value);
+                          }}
+                          className={`py-2 px-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-center border transition ${
+                            (selectedComboSauce || "No Sauce") === item.value
+                              ? "bg-amber-500 text-white border-amber-500"
+                              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Meal Combo specific dropdown options */}
                 {selectedComboItem.comboOptions && selectedComboItem.comboOptions.map((opt) => (
                   <div key={opt.name} className="space-y-2">
@@ -3275,7 +3326,7 @@ Thank you for choosing Krispy King!
             item={selectedMenuItemForDetails}
             available={isItemAvailable(selectedMenuItemForDetails.id) && (selectedMenuItemForDetails.category !== "Breakfast Menu" || isBreakfastActive)}
             onClose={() => setSelectedMenuItemForDetails(null)}
-            onAdd={(item, spice) => handleAddToCart(item, spice)}
+            onAdd={(item, spice, sauce) => handleAddToCart(item, spice, sauce)}
             onCustomize={(item) => {
               playBeep(750, "sine", 0.05);
               setSelectedComboItem(item);
@@ -3288,6 +3339,7 @@ Thank you for choosing Krispy King!
               }
               setComboSelections(initOpts);
               setSelectedSpiceLevel(item.spiceLevel || 1);
+              setSelectedComboSauce("No Sauce");
             }}
           />
         )}

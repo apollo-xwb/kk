@@ -60,6 +60,43 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     servingSize: "3 Full"
   },
 
+  // --- CHICKEN PAELLA ---
+  {
+    id: "paella-quarter",
+    name: "1/4 Chicken Paella",
+    category: "Chicken Paella",
+    price: 49.90,
+    description: "Flavourful signature 1/4 chicken paella seasoned with traditional spices.",
+    spiceLevel: 2,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/paella.webp",
+    servingSize: "1/4"
+  },
+  {
+    id: "paella-half",
+    name: "1/2 Chicken Paella",
+    category: "Chicken Paella",
+    price: 89.90,
+    description: "Flavourful signature 1/2 chicken paella basted in your choice of sauce.",
+    spiceLevel: 2,
+    isPopular: true,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/paella.webp",
+    servingSize: "1/2"
+  },
+  {
+    id: "paella-full",
+    name: "Full Chicken Paella",
+    category: "Chicken Paella",
+    price: 169.90,
+    description: "Our legendary full chicken paella, perfect for sharing.",
+    spiceLevel: 2,
+    isPopular: true,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/paella.webp",
+    servingSize: "Full"
+  },
+
   // --- FRIED CHICKEN ---
   {
     id: "f-2pc",
