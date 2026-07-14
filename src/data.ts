@@ -53,30 +53,60 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 
   // --- FRIED CHICKEN ---
   {
-    id: "f-chicken-main",
-    name: "Krispy Fried Chicken + Chips",
+    id: "f-1pc",
+    name: "1pc Fried Chicken",
+    category: "Fried Chicken",
+    price: 21.90,
+    description: "One piece of crispy, golden fried chicken.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_1.webp",
+    servingSize: "1 Piece"
+  },
+  {
+    id: "f-2pc",
+    name: "2pc + Chips",
     category: "Fried Chicken",
     price: 39.90,
-    description: "Freshly fried crispy, golden fried chicken served with a portion of chips.",
+    description: "Two pieces of crispy, golden fried chicken served with a portion of chips.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_2.webp",
+    servingSize: "2 Pieces"
+  },
+  {
+    id: "f-3pc",
+    name: "3pc + Chips",
+    category: "Fried Chicken",
+    price: 54.90,
+    description: "Three pieces of crunchy golden fried chicken and hot golden chips.",
     spiceLevel: 1,
     isPopular: true,
     isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    isCombo: true,
-    comboOptions: [
-      {
-        name: "Portion Size",
-        choices: [
-          { label: "2pc + Chips (R39.90)", priceModifier: 0 },
-          { label: "3pc + Chips (R54.90)", priceModifier: 15.00 },
-          { label: "8pc + Chips (R119.90)", priceModifier: 80.00 },
-          { label: "12pc + Chips (R149.90)", priceModifier: 110.00 },
-          { label: "15pc + Chips (R179.90)", priceModifier: 140.00 },
-          { label: "18pc + Chips (R219.90)", priceModifier: 180.00 },
-          { label: "24pc + Chips (R269.90)", priceModifier: 230.00 }
-        ]
-      }
-    ]
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_3.webp",
+    servingSize: "3 Pieces"
+  },
+  {
+    id: "f-4pc",
+    name: "4pc + Chips",
+    category: "Fried Chicken",
+    price: 69.90,
+    description: "Four pieces of legendary crunchy fried chicken and golden chips.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_4.webp",
+    servingSize: "4 Pieces"
+  },
+  {
+    id: "f-8pc",
+    name: "8pc + Chips",
+    category: "Fried Chicken",
+    price: 119.90,
+    description: "Eight pieces of delicious fried chicken and a generous helping of chips.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_8.webp",
+    servingSize: "8 Pieces"
   },
 
   // --- KRISPY FRIED TENDERS ---
@@ -184,27 +214,18 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 
   // --- BURGERS ---
   {
-    id: "b-chicken-main",
+    id: "b-chicken",
     name: "Chicken Burger",
     category: "Burgers",
     price: 36.90,
-    description: "Crispy fried or grilled chicken breast fillet on a toasted bun with mayo and lettuce.",
+    description: "Crispy fried chicken breast fillet on a toasted bun with mayo and lettuce.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    isCombo: true,
-    comboOptions: [
-      {
-        name: "Patty Count",
-        choices: [
-          { label: "Single Patty (R36.90)", priceModifier: 0 },
-          { label: "Double Patty (R59.90)", priceModifier: 23.00 }
-        ]
-      }
-    ]
+    servingSize: "Single"
   },
   {
-    id: "b-beef-main",
+    id: "b-beef",
     name: "Beef Burger",
     category: "Burgers",
     price: 36.90,
@@ -212,16 +233,30 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     spiceLevel: 0,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    isCombo: true,
-    comboOptions: [
-      {
-        name: "Patty Count",
-        choices: [
-          { label: "Single Patty (R36.90)", priceModifier: 0 },
-          { label: "Double Patty (R59.90)", priceModifier: 23.00 }
-        ]
-      }
-    ]
+    servingSize: "Single"
+  },
+  {
+    id: "b-double-chicken",
+    name: "Double Chicken Burger",
+    category: "Burgers",
+    price: 59.90,
+    description: "Two crispy chicken breast fillets layered with fresh lettuce, mayo and melted cheese.",
+    spiceLevel: 1,
+    isPopular: true,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
+    servingSize: "Double"
+  },
+  {
+    id: "b-double-beef",
+    name: "Double Beef Burger",
+    category: "Burgers",
+    price: 59.90,
+    description: "Double beef patties, double the flavor! Melted cheddar cheese, gherkins and fresh salad.",
+    spiceLevel: 0,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
+    servingSize: "Double"
   },
   {
     id: "b-rib",
@@ -571,56 +606,86 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 
   // --- FAMILY MEALS ---
   {
-    id: "fm-feast",
-    name: "Krispy Family Feast",
+    id: "fm-sixer",
+    name: "Krispy Sixer Meal",
     category: "Family Meals",
-    price: 239.90,
-    description: "6pc fried chicken, large chips & 4 buns.",
-    spiceLevel: 0,
-    isPopular: true,
+    price: 149.90,
+    description: "6 Piece Fried Chicken, Large Chips & 4 Buns.",
+    spiceLevel: 1,
     isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg"
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
   },
   {
-    id: "fm-fiesta",
+    id: "fm-mix",
+    name: "Krispy Mix Meal",
+    category: "Family Meals",
+    price: 179.90,
+    description: "1/2 Grilled Chicken, Medium Chips, 4 Piece Fried Chicken, Spicy Rice & 4 Rolls.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
+  },
+  {
+    id: "fm-fafa-krispy",
+    name: "Krispy Fafa Meal",
+    category: "Family Meals",
+    price: 169.90,
+    description: "8 Piece Fried Chicken, Large Chips & 4 Rolls.",
+    spiceLevel: 1,
+    isPopular: true,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
+  },
+  {
+    id: "fm-fiesta-krispy",
+    name: "Krispy Family Fiesta",
+    category: "Family Meals",
+    price: 259.90,
+    description: "8 Piece Fried Chicken, Large Chips, Coleslaw, 2 Fried Chicken Burgers, 2L Cold Drink & 4 Rolls.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
+  },
+  {
+    id: "fm-mega-krispy",
+    name: "MEGA Krispy Meal",
+    category: "Family Meals",
+    price: 319.90,
+    description: "16 Piece Fried Chicken, x2 Large Chips and 8 Rolls.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
+  },
+  {
+    id: "fm-fafa-grilled",
+    name: "Grilled Fafa Meal",
+    category: "Family Meals",
+    price: 169.90,
+    description: "Whole Grilled Chicken, Large Chips & 4 Rolls.",
+    spiceLevel: 1,
+    isAvailable: true,
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
+  },
+  {
+    id: "fm-fiesta-grilled",
     name: "Grilled Family Fiesta",
     category: "Family Meals",
-    price: 239.90,
-    description: "Whole grilled chicken, large chips, coleslaw, x2 burgers, 4 rolls & 2L Cold Drink.",
+    price: 259.90,
+    description: "Full Grilled Chicken, Large Chips, Coleslaw, 2 Fried Chicken Burgers, 2L Cold Drink & 4 Rolls.",
     spiceLevel: 1,
     isPopular: true,
     isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg"
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
   },
   {
-    id: "fm-8pc-pack",
-    name: "8pc fried chicken, large chips & 4 rolls",
+    id: "fm-mega-grilled",
+    name: "MEGA Grilled Meal",
     category: "Family Meals",
-    price: 159.90,
-    description: "Eight crunchy chicken pieces, a large box of chips and 4 soft rolls.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg"
-  },
-  {
-    id: "fm-16pc-pack",
-    name: "16pc chicken, x2 large chips & 8 rolls",
-    category: "Family Meals",
-    price: 299.90,
-    description: "Sixteen crunchy pieces of fried chicken, two large boxes of chips and eight soft rolls.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg"
-  },
-  {
-    id: "fm-2grilled-pack",
-    name: "2 whole grilled chicken, x2 large chips & 8 buns",
-    category: "Family Meals",
-    price: 279.90,
-    description: "Two full flame-grilled chickens basted to perfection, with two large chips and eight fresh buns.",
+    price: 319.90,
+    description: "2 Whole Grilled Chicken, x2 Large Chips and 8 Rolls.",
     spiceLevel: 1,
     isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg"
+    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp"
   },
 
   // --- SIDES & EXTRAS ---
@@ -1050,7 +1115,7 @@ const mapItemImage = (item: MenuItem): string => {
     return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/chicken_twista.webp";
   }
   if (cat.includes("family")) {
-    return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/family_meals.webp";
+    return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1200/images/menu/family_meals.webp";
   }
   if (cat.includes("sides") || cat.includes("extras")) {
     return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/sides.webp";
