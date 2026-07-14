@@ -3,438 +3,188 @@ import { MenuItem } from "./types";
 const RAW_MENU_ITEMS: MenuItem[] = [
   // --- GRILLED CHICKEN ---
   {
-    id: "g-quarter",
-    name: "Quarter Chicken",
+    id: "g-chicken-main",
+    name: "Flame-Grilled Chicken",
     category: "Grilled Chicken",
     price: 42.90,
-    description: "Flame-grilled quarter chicken basted in your choice of signature sauce.",
+    description: "Signature flame-grilled chicken basted in your choice of legendary sauce.",
     spiceLevel: 2,
     isPopular: true,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
-    servingSize: "Quarter"
-  },
-  {
-    id: "g-half",
-    name: "Half Chicken",
-    category: "Grilled Chicken",
-    price: 69.90,
-    description: "Flavourful flame-grilled half chicken, juicy and perfectly basted.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
-    servingSize: "Half"
-  },
-  {
-    id: "g-full",
-    name: "Full Chicken",
-    category: "Grilled Chicken",
-    price: 99.90,
-    description: "Whole signature flame-grilled chicken, ideal for sharing.",
-    spiceLevel: 2,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
-    servingSize: "Full"
-  },
-  {
-    id: "g-family-2",
-    name: "2 Full Chicken Family Pack",
-    category: "Grilled Chicken",
-    price: 189.90,
-    description: "Double the feast! Two whole flame-grilled chickens with legendary basting.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
-    servingSize: "2 Full"
-  },
-  {
-    id: "g-family-3",
-    name: "3 Full Chicken Family Pack",
-    category: "Grilled Chicken",
-    price: 249.90,
-    description: "Ultimate family size! Three whole flame-grilled chickens basted to perfection.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
-    servingSize: "3 Full"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Portion Size",
+        choices: [
+          { label: "Quarter Chicken (R42.90)", priceModifier: 0 },
+          { label: "Half Chicken (R69.90)", priceModifier: 27.00 },
+          { label: "Full Chicken (R99.90)", priceModifier: 57.00 },
+          { label: "2 Full Chicken Family Pack (R189.90)", priceModifier: 147.00 },
+          { label: "3 Full Chicken Family Pack (R249.90)", priceModifier: 207.00 }
+        ]
+      }
+    ]
   },
 
   // --- CHICKEN PAELLA ---
   {
-    id: "paella-quarter",
-    name: "1/4 Chicken Paella",
+    id: "paella-main",
+    name: "Signature Chicken Paella",
     category: "Chicken Paella",
     price: 49.90,
-    description: "Flavourful signature 1/4 chicken paella seasoned with traditional spices.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/paella.webp",
-    servingSize: "1/4"
-  },
-  {
-    id: "paella-half",
-    name: "1/2 Chicken Paella",
-    category: "Chicken Paella",
-    price: 89.90,
-    description: "Flavourful signature 1/2 chicken paella basted in your choice of sauce.",
+    description: "Flavourful signature chicken paella seasoned with traditional spices.",
     spiceLevel: 2,
     isPopular: true,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/paella.webp",
-    servingSize: "1/2"
-  },
-  {
-    id: "paella-full",
-    name: "Full Chicken Paella",
-    category: "Chicken Paella",
-    price: 169.90,
-    description: "Our legendary full chicken paella, perfect for sharing.",
-    spiceLevel: 2,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/paella.webp",
-    servingSize: "Full"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Portion Size",
+        choices: [
+          { label: "1/4 Chicken Paella (R49.90)", priceModifier: 0 },
+          { label: "1/2 Chicken Paella (R89.90)", priceModifier: 40.00 },
+          { label: "Full Chicken Paella (R169.90)", priceModifier: 120.00 }
+        ]
+      }
+    ]
   },
 
   // --- FRIED CHICKEN ---
   {
-    id: "f-2pc",
-    name: "2pc + Chips",
+    id: "f-chicken-main",
+    name: "Krispy Fried Chicken + Chips",
     category: "Fried Chicken",
     price: 39.90,
-    description: "Two pieces of crispy, golden fried chicken served with a portion of chips.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "2pc"
-  },
-  {
-    id: "f-3pc",
-    name: "3pc + Chips",
-    category: "Fried Chicken",
-    price: 54.90,
-    description: "Three pieces of crunchy golden fried chicken and hot golden chips.",
-    spiceLevel: 0,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "3pc"
-  },
-  {
-    id: "f-6pc",
-    name: "6pc + Chips",
-    category: "Fried Chicken",
-    price: 89.90,
-    description: "Six golden, crispy fried chicken pieces with our signature fries.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "6pc"
-  },
-  {
-    id: "f-8pc",
-    name: "8pc + Chips",
-    category: "Fried Chicken",
-    price: 119.90,
-    description: "Eight pieces of delicious fried chicken and a generous helping of chips.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "8pc"
-  },
-  {
-    id: "f-12pc",
-    name: "12pc + Chips",
-    category: "Fried Chicken",
-    price: 149.90,
-    description: "Twelve pieces of freshly fried crispy chicken with large golden chips.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "12pc"
-  },
-  {
-    id: "f-15pc",
-    name: "15pc + Chips",
-    category: "Fried Chicken",
-    price: 179.90,
-    description: "Fifteen pieces of mouth-watering crispy fried chicken and heaps of fries.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "15pc"
-  },
-  {
-    id: "f-18pc",
-    name: "18pc + Chips",
-    category: "Fried Chicken",
-    price: 219.90,
-    description: "Eighteen crispy, crunch-tastic golden fried chicken pieces and family chips.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "18pc"
-  },
-  {
-    id: "f-24pc",
-    name: "24pc + Chips",
-    category: "Fried Chicken",
-    price: 269.90,
-    description: "The ultimate bucket! 24 pieces of crunch fried chicken and extra large chips.",
+    description: "Freshly fried crispy, golden fried chicken served with a portion of chips.",
     spiceLevel: 1,
     isPopular: true,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "24pc"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Portion Size",
+        choices: [
+          { label: "2pc + Chips (R39.90)", priceModifier: 0 },
+          { label: "3pc + Chips (R54.90)", priceModifier: 15.00 },
+          { label: "8pc + Chips (R119.90)", priceModifier: 80.00 },
+          { label: "12pc + Chips (R149.90)", priceModifier: 110.00 },
+          { label: "15pc + Chips (R179.90)", priceModifier: 140.00 },
+          { label: "18pc + Chips (R219.90)", priceModifier: 180.00 },
+          { label: "24pc + Chips (R269.90)", priceModifier: 230.00 }
+        ]
+      }
+    ]
   },
 
   // --- KRISPY FRIED TENDERS ---
   {
-    id: "t-1pc",
-    name: "Krispy Fried Tenders 1pc",
+    id: "t-tenders-main",
+    name: "Krispy Fried Tenders",
     category: "Krispy Fried Tenders",
     price: 19.90,
-    description: "Crispy, golden chicken tender served with our signature dipping sauce.",
+    description: "Crispy, golden chicken tenders served with our signature dipping sauce.",
     spiceLevel: 0,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Tenders-1.jpg",
-    servingSize: "1pc"
-  },
-  {
-    id: "t-2pc",
-    name: "Krispy Fried Tenders 2pc",
-    category: "Krispy Fried Tenders",
-    price: 39.90,
-    description: "Two pieces of crispy golden chicken tenders with dipping sauce.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Tenders-1.jpg",
-    servingSize: "2pc"
-  },
-  {
-    id: "t-3pc",
-    name: "Krispy Fried Tenders 3pc",
-    category: "Krispy Fried Tenders",
-    price: 59.90,
-    description: "Three pieces of crispy chicken tenders served with dipping sauce and golden chips.",
-    spiceLevel: 0,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Tenders-1.jpg",
-    servingSize: "3pc"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Portion Size",
+        choices: [
+          { label: "1pc Tender (R19.90)", priceModifier: 0 },
+          { label: "2pc Tenders (R39.90)", priceModifier: 20.00 },
+          { label: "3pc Tenders + Chips (R59.90)", priceModifier: 40.00 }
+        ]
+      }
+    ]
   },
 
   // --- KRISPY FRIED WINGS ---
   {
-    id: "w-4pc-krispy",
-    name: "4 Wings Krispy",
+    id: "w-wings-main",
+    name: "Krispy & Grilled Wings",
     category: "Krispy Fried Wings",
     price: 39.90,
-    description: "4 pieces of crunchy golden fried wings.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "4 wings"
-  },
-  {
-    id: "w-4pc-dipped",
-    name: "4 Wings Dipped",
-    category: "Krispy Fried Wings",
-    price: 40.90,
-    description: "4 pieces of glazed, saucy chicken wings.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Dipped-Wings-1.jpg",
-    servingSize: "4 wings"
-  },
-  {
-    id: "w-4pc-grilled",
-    name: "4 Wings Grilled",
-    category: "Krispy Fried Wings",
-    price: 39.90,
-    description: "4 pieces of juicy flame-grilled wings.",
+    description: "Tender, juicy chicken wings basted or fried to golden crispy perfection.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "4 wings"
-  },
-  {
-    id: "w-6pc-krispy",
-    name: "6 Wings Krispy",
-    category: "Krispy Fried Wings",
-    price: 49.90,
-    description: "6 pieces of crunchy golden fried wings.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "6 wings"
-  },
-  {
-    id: "w-6pc-dipped",
-    name: "6 Wings Dipped",
-    category: "Krispy Fried Wings",
-    price: 49.90,
-    description: "6 pieces of glazed, saucy chicken wings.",
-    spiceLevel: 2,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Dipped-Wings-1.jpg",
-    servingSize: "6 wings"
-  },
-  {
-    id: "w-6pc-grilled",
-    name: "6 Wings Grilled",
-    category: "Krispy Fried Wings",
-    price: 49.90,
-    description: "6 pieces of juicy flame-grilled wings.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "6 wings"
-  },
-  {
-    id: "w-12pc-krispy",
-    name: "12 Wings Krispy",
-    category: "Krispy Fried Wings",
-    price: 99.90,
-    description: "12 pieces of crunchy golden fried wings.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "12 wings"
-  },
-  {
-    id: "w-12pc-dipped",
-    name: "12 Wings Dipped",
-    category: "Krispy Fried Wings",
-    price: 99.90,
-    description: "12 pieces of glazed, saucy chicken wings.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Dipped-Wings-1.jpg",
-    servingSize: "12 wings"
-  },
-  {
-    id: "w-12pc-grilled",
-    name: "12 Wings Grilled",
-    category: "Krispy Fried Wings",
-    price: 99.90,
-    description: "12 pieces of juicy flame-grilled wings.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Chicken-1.jpg",
-    servingSize: "12 wings"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Style",
+        choices: [
+          { label: "Krispy Fried", priceModifier: 0 },
+          { label: "Dipped (Glazed & Saucy)", priceModifier: 0 },
+          { label: "Flame-Grilled", priceModifier: 0 }
+        ]
+      },
+      {
+        name: "Portion Size",
+        choices: [
+          { label: "4 Wings (R39.90)", priceModifier: 0 },
+          { label: "6 Wings (R49.90)", priceModifier: 10.00 },
+          { label: "12 Wings (R99.90)", priceModifier: 60.00 }
+        ]
+      }
+    ]
   },
 
   // --- KING FRIED BURGERS ---
   {
-    id: "kb-single",
-    name: "Single King Burger",
+    id: "kb-burger-main",
+    name: "King Fried Burger",
     category: "King Fried Burgers",
     price: 39.90,
-    description: "Crispy chicken burger with 1 signature king patty.",
+    description: "Crispy chicken burger with our signature king patties and golden chips.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single"
-  },
-  {
-    id: "kb-single-chips",
-    name: "Single King + Chips",
-    category: "King Fried Burgers",
-    price: 49.90,
-    description: "Crispy chicken burger with 1 signature king patty and golden chips.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single + Chips"
-  },
-  {
-    id: "kb-double",
-    name: "Double King Burger",
-    category: "King Fried Burgers",
-    price: 54.90,
-    description: "Crispy chicken burger with 2 signature king patties.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Double"
-  },
-  {
-    id: "kb-double-chips",
-    name: "Double King + Chips",
-    category: "King Fried Burgers",
-    price: 69.90,
-    description: "Crispy chicken burger with 2 signature king patties and golden chips.",
-    spiceLevel: 1,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Double + Chips"
-  },
-  {
-    id: "kb-triple",
-    name: "Triple King Burger",
-    category: "King Fried Burgers",
-    price: 64.90,
-    description: "Crispy chicken burger with 3 signature king patties.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Triple"
-  },
-  {
-    id: "kb-triple-chips",
-    name: "Triple King + Chips",
-    category: "King Fried Burgers",
-    price: 79.90,
-    description: "Crispy chicken burger with 3 signature king patties and golden chips.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Triple + Chips"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Size & Sides",
+        choices: [
+          { label: "Single King Burger (R39.90)", priceModifier: 0 },
+          { label: "Single King + Chips (R49.90)", priceModifier: 10.00 },
+          { label: "Double King Burger (R54.90)", priceModifier: 15.00 },
+          { label: "Double King + Chips (R69.90)", priceModifier: 30.00 },
+          { label: "Triple King Burger (R64.90)", priceModifier: 25.00 },
+          { label: "Triple King + Chips (R79.90)", priceModifier: 40.00 }
+        ]
+      }
+    ]
   },
 
   // --- KAROLINA REAPER WINGS ---
   {
-    id: "krw-4",
-    name: "4 Karolina Reaper Wings",
+    id: "krw-wings-main",
+    name: "Karolina Reaper Wings",
     category: "Karolina Reaper Wings",
     price: 42.90,
-    description: "4 extreme heat wings, basted in Karolina Reaper sauce.",
+    description: "Extreme heat wings, basted in Karolina Reaper sauce.",
     spiceLevel: 3,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Dipped-Wings-1.jpg",
-    servingSize: "4 wings"
-  },
-  {
-    id: "krw-6",
-    name: "6 Karolina Reaper Wings",
-    category: "Karolina Reaper Wings",
-    price: 54.90,
-    description: "6 extreme heat wings, basted in Karolina Reaper sauce.",
-    spiceLevel: 3,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Dipped-Wings-1.jpg",
-    servingSize: "6 wings"
-  },
-  {
-    id: "krw-12",
-    name: "12 Karolina Reaper Wings",
-    category: "Karolina Reaper Wings",
-    price: 104.90,
-    description: "12 extreme heat wings, basted in Karolina Reaper sauce. Can you handle the heat?",
-    spiceLevel: 3,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Dipped-Wings-1.jpg",
-    servingSize: "12 wings"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Portion Size",
+        choices: [
+          { label: "4 Wings (R42.90)", priceModifier: 0 },
+          { label: "6 Wings (R54.90)", priceModifier: 12.00 },
+          { label: "12 Wings (R104.90)", priceModifier: 62.00 }
+        ]
+      }
+    ]
   },
 
   // --- BURGERS ---
   {
-    id: "b-chicken",
+    id: "b-chicken-main",
     name: "Chicken Burger",
     category: "Burgers",
     price: 36.90,
@@ -442,10 +192,19 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Patty Count",
+        choices: [
+          { label: "Single Patty (R36.90)", priceModifier: 0 },
+          { label: "Double Patty (R59.90)", priceModifier: 23.00 }
+        ]
+      }
+    ]
   },
   {
-    id: "b-beef",
+    id: "b-beef-main",
     name: "Beef Burger",
     category: "Burgers",
     price: 36.90,
@@ -453,30 +212,16 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     spiceLevel: 0,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single"
-  },
-  {
-    id: "b-double-chicken",
-    name: "Double Chicken Burger",
-    category: "Burgers",
-    price: 59.90,
-    description: "Two crispy chicken breast fillets layered with fresh lettuce, mayo and melted cheese.",
-    spiceLevel: 1,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Double"
-  },
-  {
-    id: "b-double-beef",
-    name: "Double Beef Burger",
-    category: "Burgers",
-    price: 59.90,
-    description: "Double beef patties, double the flavor! Melted cheddar cheese, gherkins and fresh salad.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Double"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Patty Count",
+        choices: [
+          { label: "Single Patty (R36.90)", priceModifier: 0 },
+          { label: "Double Patty (R59.90)", priceModifier: 23.00 }
+        ]
+      }
+    ]
   },
   {
     id: "b-rib",
@@ -1213,56 +958,27 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 
   // --- CHICKEN TWISTA ---
   {
-    id: "ct-fried-salads",
-    name: "Chicken Twista (Fried strips with salads)",
+    id: "ct-twista-main",
+    name: "Chicken Twista",
     category: "Chicken Twista",
     price: 49.90,
-    description: "Crispy fried chicken strips with fresh green salads wrapped in a soft warm tortilla.",
+    description: "Premium wrapped chicken strips with your choice of filling and style.",
     spiceLevel: 1,
     isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Twista-1.jpg"
-  },
-  {
-    id: "ct-fried-coleslaw",
-    name: "Chicken Twista (Coleslaw with fried strips)",
-    category: "Chicken Twista",
-    price: 49.90,
-    description: "Crunchy fried chicken strips layered with rich, creamy coleslaw in a soft wrap.",
-    spiceLevel: 1,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Fried-Twista-1.jpg"
-  },
-  {
-    id: "ct-grilled-salads",
-    name: "Chicken Twista (Grilled strips with salads)",
-    category: "Chicken Twista",
-    price: 49.90,
-    description: "Succulent flame-grilled chicken strips paired with fresh garden salad in a toasted wrap.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Twista-1.jpg"
-  },
-  {
-    id: "ct-grilled-coleslaw",
-    name: "Chicken Twista (Coleslaw with grilled strips)",
-    category: "Chicken Twista",
-    price: 49.90,
-    description: "Tender flame-grilled chicken strips layered with rich coleslaw in a soft warm wrap.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Twista-1.jpg"
-  },
-  {
-    id: "ct-grilled-feta",
-    name: "Chicken Twista (Feta, jalapenos, chips & salads)",
-    category: "Chicken Twista",
-    price: 59.90,
-    description: "Premium twist! Grilled or fried chicken strips with rich feta cheese, hot jalapenos, chips & salads.",
-    spiceLevel: 2,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Twista-1.jpg"
+    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Twista-1.jpg",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Style & Fillings",
+        choices: [
+          { label: "Fried strips with salads (R49.90)", priceModifier: 0 },
+          { label: "Coleslaw with fried strips (R49.90)", priceModifier: 0 },
+          { label: "Grilled strips with salads (R49.90)", priceModifier: 0 },
+          { label: "Coleslaw with grilled strips (R49.90)", priceModifier: 0 },
+          { label: "Feta, jalapenos, chips & salads (R59.90)", priceModifier: 10.00 }
+        ]
+      }
+    ]
   }
 ];
 
@@ -1287,6 +1003,8 @@ const mapItemImage = (item: MenuItem): string => {
     if (name.includes("1pc") || name.includes("1 piece")) {
       return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_1.webp";
     }
+    // General fallback for Fried Chicken (such as our consolidated main card)
+    return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_8.webp";
   }
 
   // Double Deals (Krispy vs Grilled)
