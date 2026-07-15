@@ -146,7 +146,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
       </div>
 
       {/* Info Body (bottom 40%) */}
-      <div className="p-4 flex-grow flex flex-col justify-between overflow-hidden bg-white">
+      <div className="p-4 flex-grow flex flex-col justify-between overflow-hidden bg-gold">
         <div className="space-y-1">
           <h3 className="text-sm font-black text-black uppercase tracking-tight line-clamp-1 leading-snug group-hover:text-chicken-red transition-colors">
             {item.name}
@@ -156,8 +156,8 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center justify-between pt-2 shrink-0 border-t border-gray-50">
-          <span className="text-sm font-black text-chicken-red tracking-tight bg-red-50 px-2 py-0.5 rounded border border-red-100">
+        <div className="flex items-center justify-between pt-2 shrink-0 border-t-2 border-black/15">
+          <span className="text-sm font-black text-black tracking-tight bg-black/10 px-2 py-0.5 rounded border border-black/15">
             R{item.price.toFixed(2)}
           </span>
 
@@ -168,7 +168,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
                   e.stopPropagation();
                   onCustomize(item);
                 }}
-                className="px-3 py-1.5 bg-chicken-red hover:bg-red-700 text-white text-[10px] font-black rounded-lg uppercase tracking-wider transition-colors duration-250 flex items-center gap-1 shadow-sm hover:shadow"
+                className="px-3 py-1.5 bg-black hover:bg-gray-950 text-white text-[10px] font-black rounded-lg uppercase tracking-wider transition-colors duration-250 flex items-center gap-1 shadow-sm hover:shadow"
               >
                 Customize
                 <ChevronRight className="w-3 h-3 text-gold" />
@@ -179,7 +179,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
                   e.stopPropagation();
                   onAdd(item);
                 }}
-                className="px-3.5 py-1.5 bg-gold hover:bg-yellow-400 text-black text-[10px] font-black rounded-lg uppercase tracking-wider transition-colors duration-250 flex items-center gap-1 shadow-sm hover:shadow"
+                className="px-3.5 py-1.5 bg-black hover:bg-gray-950 text-white text-[10px] font-black rounded-lg uppercase tracking-wider transition-colors duration-250 flex items-center gap-1 shadow-sm hover:shadow"
               >
                 Add +
               </button>

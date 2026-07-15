@@ -376,6 +376,7 @@ export default function App() {
   const [comboSelections, setComboSelections] = useState<Record<string, { label: string; priceModifier: number }>>({});
   const [selectedSpiceLevel, setSelectedSpiceLevel] = useState<number>(1); // default Mild for spice-indicator items
   const [selectedComboSauce, setSelectedComboSauce] = useState<string>("No Sauce");
+  const [selectedFriesSize, setSelectedFriesSize] = useState<"None" | "Small" | "Regular" | "Large">("None");
 
   const [isIndividualCustomizationEnabled, setIsIndividualCustomizationEnabled] = useState<boolean>(false);
   const [individualSelections, setIndividualSelections] = useState<{ spice: number; sauce: string }[]>([]);
@@ -404,6 +405,25 @@ export default function App() {
       setIndividualSelections([]);
     }
   }, [parsedChickenCount, selectedSpiceLevel, selectedComboSauce]);
+
+  const customizerTotalPrice = useMemo(() => {
+    if (!selectedComboItem) return 0;
+    let addedPrice = 0;
+    Object.values(comboSelections).forEach((opt: any) => {
+      addedPrice += opt.priceModifier || 0;
+    });
+    if (isIndividualCustomizationEnabled && parsedChickenCount > 1) {
+      individualSelections.forEach((sel) => {
+        if (sel.sauce === "Carolina Reaper Sauce (on the side)") addedPrice += 5.00;
+      });
+    } else {
+      if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") addedPrice += 5.00;
+    }
+    if ((selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") && selectedFriesSize !== "None") {
+      addedPrice += selectedFriesSize === "Small" ? 21.90 : selectedFriesSize === "Regular" ? 32.90 : 41.90;
+    }
+    return selectedComboItem.price + addedPrice;
+  }, [selectedComboItem, comboSelections, isIndividualCustomizationEnabled, parsedChickenCount, individualSelections, selectedComboSauce, selectedFriesSize]);
 
   // --- Toast Trigger helper ---
   const triggerToast = (text: string, type: "success" | "info" | "error" = "success") => {
@@ -448,15 +468,24 @@ export default function App() {
 
   // Lock body scrolling when any overlay/modal is open
   useEffect(() => {
-    if (selectedComboItem || selectedMenuItemForDetails || showSelfVerifyInput) {
+    if (selectedComboItem || selectedMenuItemForDetails || showSelfVerifyInput || pinVerificationOrder) {
       document.body.style.overflow = "hidden";
+      document.body.style.height = "100vh";
+      document.documentElement.style.overflow = "hidden";
+      document.documentElement.style.height = "100vh";
     } else {
       document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.height = "";
     }
     return () => {
       document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.height = "";
     };
-  }, [selectedComboItem, selectedMenuItemForDetails, showSelfVerifyInput]);
+  }, [selectedComboItem, selectedMenuItemForDetails, showSelfVerifyInput, pinVerificationOrder]);
 
   // Total cart items count for badge bouncing
   const cartTotalItems = useMemo(() => {
@@ -544,6 +573,17 @@ export default function App() {
 
       if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") {
         addedPrice += 5.00;
+      }
+
+      // Add Fries option for Grilled Chicken
+      if (selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") {
+        if (selectedFriesSize !== "None") {
+          const friesPrice = selectedFriesSize === "Small" ? 21.90 : selectedFriesSize === "Regular" ? 32.90 : 41.90;
+          selectedOptionsRecord["Add Fries"] = `${selectedFriesSize} Chips (+R${friesPrice.toFixed(2)})`;
+          addedPrice += friesPrice;
+        } else {
+          selectedOptionsRecord["Add Fries"] = "No Fries";
+        }
       }
     }
 
@@ -1613,6 +1653,7 @@ Thank you for choosing Krispy King!
                         setComboSelections(initOpts);
                         setSelectedSpiceLevel(item.spiceLevel || 1);
                         setSelectedComboSauce("No Sauce");
+                        setSelectedFriesSize("None");
                       }}
                       onSelect={(item) => {
                         playBeep(650, "sine", 0.03);
@@ -3517,7 +3558,7 @@ Thank you for choosing Krispy King!
                     {selectedComboItem.name} Customizer
                   </h3>
                   <span className="text-xs text-chicken-red font-black block mt-0.5">
-                    Base: R{selectedComboItem.price.toFixed(2)}
+                    Total: R{customizerTotalPrice.toFixed(2)}
                   </span>
                 </div>
                 <button
@@ -3733,6 +3774,39 @@ Thank you for choosing Krispy King!
                     </div>
                   </div>
                 ))}
+
+                {/* Add Fries option for Grilled Chicken */}
+                {(selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") && (
+                  <div className="space-y-2 bg-amber-50/50 border border-gold/30 p-4 rounded-xl">
+                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
+                      🍟 ADD CRISPY CHIPS / FRIES:
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { label: "No Fries", value: "None" },
+                        { label: "Small (+R21.90)", value: "Small" },
+                        { label: "Regular (+R32.90)", value: "Regular" },
+                        { label: "Large (+R41.90)", value: "Large" }
+                      ].map((opt, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            playBeep(600 + idx * 50, "sine", 0.04);
+                            setSelectedFriesSize(opt.value as any);
+                          }}
+                          className={`py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider text-center border-2 border-black transition ${
+                            selectedFriesSize === opt.value
+                              ? "bg-amber-500 text-white"
+                              : "bg-white text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Button */}
@@ -3742,6 +3816,9 @@ Thank you for choosing Krispy King!
               >
                 Add Customized Meal to Cart
               </button>
+
+              {/* Extra spacing at bottom so user can scroll content above any potential browser controls or overlay boundaries */}
+              <div className="h-24 shrink-0" />
             </motion.div>
           </div>
         )}
@@ -3767,6 +3844,7 @@ Thank you for choosing Krispy King!
               setComboSelections(initOpts);
               setSelectedSpiceLevel(item.spiceLevel || 1);
               setSelectedComboSauce("No Sauce");
+              setSelectedFriesSize("None");
             }}
           />
         )}
@@ -3924,51 +4002,53 @@ Thank you for choosing Krispy King!
       <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/75 via-black/35 to-transparent pointer-events-none z-[9999]" />
 
       {/* Floating Quick Action Buttons (Bottom Center Side-by-Side) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-row items-center justify-center gap-4 z-[10000] w-auto">
-        {/* Passes FAB */}
-        {path !== "/passes" && (
-          <button
-            onClick={() => {
-              playBeep(750, "sine", 0.05);
-              navigate("/passes");
-            }}
-            className="relative w-14 h-14 bg-black text-gold rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-gray-900 transition-all active:scale-95 group shrink-0"
-            title="View Digital Passes"
-          >
-            <QrCode className="w-6 h-6 stroke-[2.5]" />
-            {customerPasses.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-chicken-red text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
-                {customerPasses.length}
+      {!selectedComboItem && !selectedMenuItemForDetails && !showSelfVerifyInput && !pinVerificationOrder && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-row items-center justify-center gap-4 z-[10000] w-auto">
+          {/* Passes FAB */}
+          {path !== "/passes" && (
+            <button
+              onClick={() => {
+                playBeep(750, "sine", 0.05);
+                navigate("/passes");
+              }}
+              className="relative w-14 h-14 bg-black text-gold rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-gray-900 transition-all active:scale-95 group shrink-0"
+              title="View Digital Passes"
+            >
+              <QrCode className="w-6 h-6 stroke-[2.5]" />
+              {customerPasses.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-chicken-red text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
+                  {customerPasses.length}
+                </span>
+              )}
+              <span className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+                My Passes
               </span>
-            )}
-            <span className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
-              My Passes
-            </span>
-          </button>
-        )}
+            </button>
+          )}
 
-        {/* Cart FAB */}
-        {path !== "/cart" && path !== "/checkout" && (
-          <button
-            onClick={() => {
-              playBeep(850, "sine", 0.05);
-              navigate("/cart");
-            }}
-            className="relative w-14 h-14 bg-chicken-red text-white rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-red-700 transition-all active:scale-95 group shrink-0"
-            title="View Shopping Cart"
-          >
-            <ShoppingBag className="w-6 h-6 text-gold stroke-[2.5]" />
-            {cartTotalItems > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
-                {cartTotalItems}
+          {/* Cart FAB */}
+          {path !== "/cart" && path !== "/checkout" && (
+            <button
+              onClick={() => {
+                playBeep(850, "sine", 0.05);
+                navigate("/cart");
+              }}
+              className="relative w-14 h-14 bg-chicken-red text-white rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-red-700 transition-all active:scale-95 group shrink-0"
+              title="View Shopping Cart"
+            >
+              <ShoppingBag className="w-6 h-6 text-gold stroke-[2.5]" />
+              {cartTotalItems > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
+                  {cartTotalItems}
+                </span>
+              )}
+              <span className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-chicken-red text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+                My Cart
               </span>
-            )}
-            <span className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-chicken-red text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
-              My Cart
-            </span>
-          </button>
-        )}
-      </div>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
