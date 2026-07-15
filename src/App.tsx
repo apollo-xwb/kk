@@ -212,6 +212,15 @@ export default function App() {
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
 
+  // --- Digital Billboard Promo Slider ---
+  const [billboardSlide, setBillboardSlide] = useState<number>(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBillboardSlide((prev) => (prev === 0 ? 1 : 0));
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
   // --- Real-Time Firestore Synced Database States ---
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
@@ -1262,73 +1271,191 @@ Thank you for choosing Krispy King!
               </AnimatePresence>
             </div>
 
-            {/* Chips Upsell Section */}
-            <div className="bg-amber-50 rounded-2xl border-2 border-black p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
-                <div className="bg-gold text-black p-3.5 rounded-full border-2 border-black text-3xl animate-bounce shadow shrink-0">
-                  🍟
+            {/* Live Interactive Digital Billboard */}
+            <div className="mb-6 bg-white rounded-2xl border-2 border-black overflow-hidden shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col">
+              {/* Billboard Header (LED styled ticker/bezel) */}
+              <div className="bg-black text-gold px-4 py-2 flex items-center justify-between border-b-2 border-black text-[10px] font-black uppercase tracking-widest select-none">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-ping shrink-0" />
+                  <span className="text-white">LIVE BILLBOARD</span>
+                  <span className="text-gold hidden sm:inline">// DEALS & UPGRADES</span>
                 </div>
-                <div>
-                  <h4 className="font-black uppercase tracking-tight text-sm text-black flex items-center justify-center md:justify-start gap-1">
-                    Level Up Your Crunch! <span className="text-chicken-red">Spiced Hot Chips</span>
-                  </h4>
-                  <p className="text-xs text-gray-700 font-semibold mt-0.5 max-w-md">
-                    Our legendary crispy, golden-fried hot potato chips with signature seasoning. The ultimate companion for your chicken!
-                  </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      playBeep(600, "sine", 0.02);
+                      setBillboardSlide((prev) => (prev === 0 ? 1 : 0));
+                    }}
+                    className="hover:text-white transition-colors p-1"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
+                  <span className="font-mono text-[9px] bg-gray-900 text-gold px-1.5 py-0.5 rounded border border-gray-800">
+                    {billboardSlide + 1} / 2
+                  </span>
+                  <button
+                    onClick={() => {
+                      playBeep(600, "sine", 0.02);
+                      setBillboardSlide((prev) => (prev === 0 ? 1 : 0));
+                    }}
+                    className="hover:text-white transition-colors p-1"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto shrink-0">
-                {[
-                  { id: "s-chips-small", label: "Small", price: "R21.90" },
-                  { id: "s-chips-regular", label: "Regular", price: "R32.90", isPopular: true },
-                  { id: "s-chips-large", label: "Large", price: "R41.90" }
-                ].map((size) => (
+              {/* Billboard Slides Content */}
+              <div className="relative min-h-[220px] md:min-h-[160px] flex items-center bg-gradient-to-br from-amber-50 to-orange-50/30 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {billboardSlide === 0 ? (
+                    <motion.div
+                      key="slide-chicken"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
+                    >
+                      <div className="absolute -right-6 -bottom-6 text-9xl opacity-[0.06] pointer-events-none select-none rotate-12">
+                        🍗
+                      </div>
+                      <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
+                        <div className="bg-chicken-red text-gold p-3.5 rounded-full border-2 border-black text-3xl animate-pulse shadow shrink-0">
+                          🔥
+                        </div>
+                        <div className="space-y-1">
+                          <span className="inline-block px-2 py-0.5 bg-chicken-red text-gold text-[9px] font-black uppercase rounded border border-black shadow-sm tracking-widest leading-none">
+                            LIMITED TIME PROMO
+                          </span>
+                          <h3 className="text-sm font-black uppercase tracking-tight text-black flex items-center justify-center md:justify-start gap-1.5 mt-1">
+                            Add a Whole Flame-Grilled Chicken for <span className="text-chicken-red font-extrabold text-base">R99.90</span>!
+                          </h3>
+                          <p className="text-[11px] text-gray-700 font-semibold max-w-xl leading-relaxed">
+                            Make any meal a feast! With any grilled meal ordered, you can add <span className="underline decoration-gold font-bold">one full flame-grilled chicken</span> basted in your choice of sizzling sauce for only <span className="text-chicken-red font-bold">R99.90</span>.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const customWholeChicken = {
+                            id: "promo-whole-chicken",
+                            name: "Whole Flame-Grilled Chicken (Promo)",
+                            category: "Grilled Chicken",
+                            price: 99.90,
+                            description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
+                            imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
+                            spiceLevel: 1
+                          };
+                          handleAddToCart(customWholeChicken);
+                          triggerToast("Whole Flame-Grilled Chicken Promo added! 🍗", "success");
+                        }}
+                        className="w-full md:w-auto px-5 py-3 bg-gold hover:bg-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition duration-150 border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] active:scale-95 shrink-0"
+                      >
+                        Add Promo Chicken
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="slide-chips"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
+                    >
+                      <div className="absolute -right-6 -bottom-6 text-9xl opacity-[0.06] pointer-events-none select-none rotate-12">
+                        🍟
+                      </div>
+                      <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
+                        <div className="bg-gold text-black p-3.5 rounded-full border-2 border-black text-3xl animate-bounce shadow shrink-0">
+                          🍟
+                        </div>
+                        <div>
+                          <span className="inline-block px-2 py-0.5 bg-gold text-black text-[9px] font-black uppercase rounded border border-black shadow-sm tracking-widest leading-none">
+                            CRUNCH UPGRADE
+                          </span>
+                          <h4 className="font-black uppercase tracking-tight text-sm text-black flex items-center justify-center md:justify-start gap-1 mt-1">
+                            Level Up Your Crunch! <span className="text-chicken-red">Spiced Hot Chips</span>
+                          </h4>
+                          <p className="text-xs text-gray-700 font-semibold mt-0.5 max-w-md leading-relaxed">
+                            Our legendary crispy, golden-fried hot potato chips with signature seasoning. The ultimate companion for your chicken!
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto shrink-0">
+                        {[
+                          { id: "s-chips-small", label: "Small", price: "R21.90" },
+                          { id: "s-chips-regular", label: "Regular", price: "R32.90", isPopular: true },
+                          { id: "s-chips-large", label: "Large", price: "R41.90" }
+                        ].map((size) => (
+                          <button
+                            key={size.id}
+                            onClick={() => {
+                              addQuickAddOn(size.id);
+                              triggerToast(`${size.label} Chips added to your cart! 🍟`, "success");
+                            }}
+                            className={`relative p-3.5 rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all active:scale-95 text-center ${
+                              size.isPopular
+                                ? "bg-gold text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
+                                : "bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-gray-150"
+                            }`}
+                          >
+                            {size.isPopular && (
+                              <span className="absolute -top-2 px-1.5 py-0.5 text-[7px] font-black uppercase text-white bg-chicken-red rounded-full border border-black shadow-sm leading-none">
+                                BEST VALUE
+                              </span>
+                            )}
+                            <span className="text-xs font-black uppercase tracking-tight">{size.label}</span>
+                            <span className="text-[10px] font-extrabold text-chicken-red mt-0.5">{size.price}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Billboard Pager Dots */}
+              <div className="bg-gray-50 border-t-2 border-black px-4 py-2.5 flex items-center justify-center gap-2 select-none">
+                {[0, 1].map((idx) => (
                   <button
-                    key={size.id}
+                    key={idx}
                     onClick={() => {
-                      addQuickAddOn(size.id);
-                      triggerToast(`${size.label} Chips added to your cart! 🍟`, "success");
+                      playBeep(650, "sine", 0.02);
+                      setBillboardSlide(idx);
                     }}
-                    className={`relative p-3.5 rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all active:scale-95 text-center ${
-                      size.isPopular
-                        ? "bg-gold text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
-                        : "bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-gray-150"
+                    className={`h-2.5 rounded-full border border-black transition-all duration-300 ${
+                      billboardSlide === idx ? "w-8 bg-chicken-red" : "w-2.5 bg-gray-300 hover:bg-gray-400"
                     }`}
-                  >
-                    {size.isPopular && (
-                      <span className="absolute -top-2 px-1.5 py-0.5 text-[7px] font-black uppercase text-white bg-chicken-red rounded-full border border-black shadow-sm leading-none">
-                        BEST VALUE
-                      </span>
-                    )}
-                    <span className="text-xs font-black uppercase tracking-tight">{size.label}</span>
-                    <span className="text-[10px] font-extrabold text-chicken-red mt-0.5">{size.price}</span>
-                  </button>
+                    title={`Slide ${idx + 1}`}
+                  />
                 ))}
               </div>
             </div>
 
             {/* Search & Category Filter */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-md">
+            <div className="bg-white rounded-2xl border-2 border-black p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 {/* Search input */}
-                <div className="relative md:col-span-1">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Search className="w-5 h-5 text-gray-400" />
+                <div className="relative md:col-span-1 flex items-stretch bg-amber-50 border-2 border-black rounded-xl overflow-hidden shadow-[3px_3px_0px_rgba(0,0,0,1)] focus-within:shadow-[5px_5px_0px_rgba(0,0,0,1)] focus-within:-translate-y-0.5 transition-all duration-200">
+                  <span className="bg-gold border-r-2 border-black flex items-center justify-center px-3.5 text-black shrink-0">
+                    <Search className="w-4 h-4 stroke-[3px]" />
                   </span>
                   <input
                     type="text"
-                    placeholder="Search chicken, burgers, meals..."
+                    placeholder="FIND YOUR CRAVINGS..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent font-medium shadow-sm"
+                    className="w-full pl-3 pr-10 py-3 bg-white text-black font-black uppercase tracking-wider text-xs placeholder-gray-400 focus:outline-none"
                   />
                   {searchQuery && (
                     <button 
                       onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-chicken-red text-gold w-6 h-6 rounded-lg border-2 border-black flex items-center justify-center font-black text-xs hover:bg-red-700 transition-colors shadow-[1px_1px_0px_rgba(0,0,0,1)] active:scale-95"
                     >
-                      Clear
+                      ✕
                     </button>
                   )}
                 </div>
@@ -1719,14 +1846,14 @@ Thank you for choosing Krispy King!
                   {showWholeChickenUpsell && (
                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl space-y-3 shadow-sm">
                       <span className="text-[10px] font-black uppercase text-white bg-chicken-red px-2 py-0.5 rounded border border-red-600">
-                        🍗 Whole Grilled Chicken Deal - R99.00
+                        🍗 Whole Grilled Chicken Deal - R99.90
                       </span>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🍗</span>
                           <div>
                             <span className="block text-xs font-black uppercase text-gray-900">Add Whole Flame-Grilled Chicken</span>
-                            <span className="block text-[10px] text-gray-500">Special R99 promo for choosing our premium meals!</span>
+                            <span className="block text-[10px] text-gray-500">Special R99.90 promo for choosing our premium meals!</span>
                           </div>
                         </div>
                         <button
@@ -1735,7 +1862,7 @@ Thank you for choosing Krispy King!
                               id: "promo-whole-chicken",
                               name: "Whole Flame-Grilled Chicken (Promo)",
                               category: "Grilled Chicken",
-                              price: 99.00,
+                              price: 99.90,
                               description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
                               imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
                               spiceLevel: 1
@@ -3617,6 +3744,53 @@ Thank you for choosing Krispy King!
 
       {/* Permanent bottom fade to black (infinity edge / void feel) */}
       <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/75 via-black/35 to-transparent pointer-events-none z-[9999]" />
+
+      {/* Floating Quick Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3.5 z-[10000]">
+        {/* Passes FAB */}
+        {path !== "/passes" && (
+          <button
+            onClick={() => {
+              playBeep(750, "sine", 0.05);
+              navigate("/passes");
+            }}
+            className="relative w-14 h-14 bg-black text-gold rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-gray-900 transition-all active:scale-95 group"
+            title="View Digital Passes"
+          >
+            <QrCode className="w-6 h-6 stroke-[2.5]" />
+            {customerPasses.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-chicken-red text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
+                {customerPasses.length}
+              </span>
+            )}
+            <span className="absolute right-16 top-1/2 -translate-y-1/2 bg-black text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+              My Passes
+            </span>
+          </button>
+        )}
+
+        {/* Cart FAB */}
+        {path !== "/cart" && path !== "/checkout" && (
+          <button
+            onClick={() => {
+              playBeep(850, "sine", 0.05);
+              navigate("/cart");
+            }}
+            className="relative w-14 h-14 bg-chicken-red text-white rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-red-700 transition-all active:scale-95 group"
+            title="View Shopping Cart"
+          >
+            <ShoppingBag className="w-6 h-6 text-gold stroke-[2.5]" />
+            {cartTotalItems > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-black animate-bounce">
+                {cartTotalItems}
+              </span>
+            )}
+            <span className="absolute right-16 top-1/2 -translate-y-1/2 bg-chicken-red text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+              My Cart
+            </span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
