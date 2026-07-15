@@ -1262,6 +1262,52 @@ Thank you for choosing Krispy King!
               </AnimatePresence>
             </div>
 
+            {/* Chips Upsell Section */}
+            <div className="bg-amber-50 rounded-2xl border-2 border-black p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
+                <div className="bg-gold text-black p-3.5 rounded-full border-2 border-black text-3xl animate-bounce shadow shrink-0">
+                  🍟
+                </div>
+                <div>
+                  <h4 className="font-black uppercase tracking-tight text-sm text-black flex items-center justify-center md:justify-start gap-1">
+                    Level Up Your Crunch! <span className="text-chicken-red">Spiced Hot Chips</span>
+                  </h4>
+                  <p className="text-xs text-gray-700 font-semibold mt-0.5 max-w-md">
+                    Our legendary crispy, golden-fried hot potato chips with signature seasoning. The ultimate companion for your chicken!
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto shrink-0">
+                {[
+                  { id: "s-chips-small", label: "Small", price: "R21.90" },
+                  { id: "s-chips-regular", label: "Regular", price: "R32.90", isPopular: true },
+                  { id: "s-chips-large", label: "Large", price: "R41.90" }
+                ].map((size) => (
+                  <button
+                    key={size.id}
+                    onClick={() => {
+                      addQuickAddOn(size.id);
+                      triggerToast(`${size.label} Chips added to your cart! 🍟`, "success");
+                    }}
+                    className={`relative p-3.5 rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all active:scale-95 text-center ${
+                      size.isPopular
+                        ? "bg-gold text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
+                        : "bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-gray-150"
+                    }`}
+                  >
+                    {size.isPopular && (
+                      <span className="absolute -top-2 px-1.5 py-0.5 text-[7px] font-black uppercase text-white bg-chicken-red rounded-full border border-black shadow-sm leading-none">
+                        BEST VALUE
+                      </span>
+                    )}
+                    <span className="text-xs font-black uppercase tracking-tight">{size.label}</span>
+                    <span className="text-[10px] font-extrabold text-chicken-red mt-0.5">{size.price}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Search & Category Filter */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-md">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -3568,6 +3614,9 @@ Thank you for choosing Krispy King!
           </div>
         )}
       </AnimatePresence>
+
+      {/* Permanent bottom fade to black (infinity edge / void feel) */}
+      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/75 via-black/35 to-transparent pointer-events-none z-[9999]" />
     </div>
   );
 }

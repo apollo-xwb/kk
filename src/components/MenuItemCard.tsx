@@ -59,7 +59,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   return (
     <div
       onClick={() => onSelect(item)}
-      className={`relative bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-md hover:shadow-xl hover:border-gray-300 transition-all duration-300 flex flex-col justify-between h-[475px] cursor-pointer group ${
+      className={`relative bg-white rounded-2xl border-2 border-black overflow-hidden shadow-[4px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[8px_8px_20px_rgba(0,0,0,0.3)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-[475px] cursor-pointer group ${
         !available ? "opacity-65" : ""
       }`}
       id={`menu-item-${item.id}`}
