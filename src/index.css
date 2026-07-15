@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --primary-gold: #FFD700;
+  --primary-gold: #FFE100;
   --secondary-red: #E31837;
   --accent-black: #000000;
   --bg-white: #FFFFFF;
@@ -15,7 +15,7 @@
   --font-sans: "Montserrat", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   
-  --color-gold: #FFD700;
+  --color-gold: #FFE100;
   --color-chicken-red: #E31837;
   --color-dark-accent: #0b0c10;
   --color-surface-gray: #F5F5F5;

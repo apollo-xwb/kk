@@ -377,6 +377,34 @@ export default function App() {
   const [selectedSpiceLevel, setSelectedSpiceLevel] = useState<number>(1); // default Mild for spice-indicator items
   const [selectedComboSauce, setSelectedComboSauce] = useState<string>("No Sauce");
 
+  const [isIndividualCustomizationEnabled, setIsIndividualCustomizationEnabled] = useState<boolean>(false);
+  const [individualSelections, setIndividualSelections] = useState<{ spice: number; sauce: string }[]>([]);
+
+  // Synchronize individual chicken selections based on portion count
+  const parsedChickenCount = useMemo(() => {
+    if (!selectedComboItem) return 0;
+    const nameLower = selectedComboItem.name.toLowerCase();
+    const portionLabel = comboSelections["Portion Size"]?.label?.toLowerCase() || "";
+    if (nameLower.includes("3 full chicken") || portionLabel.includes("3 full chicken")) return 3;
+    if (nameLower.includes("2 full chicken") || portionLabel.includes("2 full chicken")) return 2;
+    return 0;
+  }, [selectedComboItem, comboSelections]);
+
+  useEffect(() => {
+    if (parsedChickenCount > 1) {
+      setIndividualSelections((prev) => {
+        if (prev.length === parsedChickenCount) return prev;
+        return Array.from({ length: parsedChickenCount }, () => ({
+          spice: selectedSpiceLevel,
+          sauce: selectedComboSauce,
+        }));
+      });
+    } else {
+      setIsIndividualCustomizationEnabled(false);
+      setIndividualSelections([]);
+    }
+  }, [parsedChickenCount, selectedSpiceLevel, selectedComboSauce]);
+
   // --- Toast Trigger helper ---
   const triggerToast = (text: string, type: "success" | "info" | "error" = "success") => {
     setToastMessage({ text, type });
@@ -417,6 +445,18 @@ export default function App() {
   // Customer Self-Verification states
   const [showSelfVerifyInput, setShowSelfVerifyInput] = useState<boolean>(false);
   const [selfVerifyInputPin, setSelfVerifyInputPin] = useState<string>("");
+
+  // Lock body scrolling when any overlay/modal is open
+  useEffect(() => {
+    if (selectedComboItem || selectedMenuItemForDetails || showSelfVerifyInput) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedComboItem, selectedMenuItemForDetails, showSelfVerifyInput]);
 
   // Total cart items count for badge bouncing
   const cartTotalItems = useMemo(() => {
@@ -480,21 +520,34 @@ export default function App() {
       addedPrice += optionChoice.priceModifier;
     });
 
-    // Add spice level option if any
-    if (selectedComboItem.spiceLevel !== undefined) {
+    if (isIndividualCustomizationEnabled && parsedChickenCount > 1) {
       const labels = ["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
-      selectedOptionsRecord["Spice Level"] = labels[selectedSpiceLevel];
-    }
+      individualSelections.forEach((sel, i) => {
+        selectedOptionsRecord[`Chicken #${i+1} Spice`] = labels[sel.spice];
+        selectedOptionsRecord[`Chicken #${i+1} Sauce`] = sel.sauce;
+        if (sel.sauce === "Carolina Reaper Sauce (on the side)") {
+          addedPrice += 5.00;
+        }
+      });
+    } else {
+      // Add spice level option if any (exclude for fried chicken)
+      const isFried = selectedComboItem.category.toLowerCase().includes("fried") || selectedComboItem.name.toLowerCase().includes("fried");
+      if (selectedComboItem.spiceLevel !== undefined && !isFried) {
+        const labels = ["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
+        selectedOptionsRecord["Spice Level"] = labels[selectedSpiceLevel];
+      }
 
-    // Add sauce option if food item
-    if (selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails") {
-      selectedOptionsRecord["Sauce Option"] = selectedComboSauce || "No Sauce";
+      // Add sauce option if food item
+      if (selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails") {
+        selectedOptionsRecord["Sauce Option"] = selectedComboSauce || "No Sauce";
+      }
+
+      if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") {
+        addedPrice += 5.00;
+      }
     }
 
     let calculatedUnitPrice = selectedComboItem.price + addedPrice;
-    if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") {
-      calculatedUnitPrice += 5.00;
-    }
 
     setCart((prevCart) => {
       // Find if we already have the exact same combo item with exact same options
@@ -524,6 +577,7 @@ export default function App() {
     triggerToast(`Added ${selectedComboItem.name} Combo to cart!`, "success");
     setSelectedComboItem(null);
     setComboSelections({});
+    setIsIndividualCustomizationEnabled(false);
   };
 
   // Adjust quantities in cart
@@ -1014,8 +1068,25 @@ Thank you for choosing Krispy King!
         )}
       </AnimatePresence>
 
-      {/* Brand Header */}
-      <header className="sticky top-0 z-40 bg-black text-white shadow-md border-b-4 border-gold px-4 py-3">
+      {/* Brand Header & Top Banner Container */}
+      <div className="sticky top-0 z-40 flex flex-col shadow-md">
+        {/* Promo Marquee (Edge-to-Edge Announcement Banner) */}
+        <div className="bg-chicken-red text-white py-2 px-3 overflow-hidden border-b border-gold/20 relative flex items-center w-full select-none">
+          <div className="absolute left-0 top-0 bottom-0 bg-chicken-red px-3.5 z-10 flex items-center border-r border-gold/20 font-black text-gold text-[10px] italic uppercase tracking-wider">
+            DEALS 🔥
+          </div>
+          <div className="w-full overflow-hidden pl-20">
+            <div className="animate-marquee text-[10px] font-black uppercase tracking-wider">
+              <span>🚀 Try our newly introduced KAROLINA REAPER sauce on Grilled Chicken! Can you handle the heat? 🌶️🌶️🌶️</span>
+              <span>🍗 2 Full Chicken Family Pack for just R189.90! Save massive rands! 🍗</span>
+              <span>🍔 Smashed Burger Beef double deal R69.90 - juicy patties, melted cheese! 🍔</span>
+              <span>🍹 Fresh ice cold mocktails starting at only R39.90! Mojitos, sunrises, lemonades! 🍹</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Brand Header Content */}
+        <header className="bg-black text-white px-4 py-2.5 border-b-4 border-gold">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer select-none" onClick={handleLogoClick}>
             <div className="bg-white p-1 rounded-full border-2 border-chicken-red shadow-md w-16 h-16 flex items-center justify-center transform active:scale-95 transition-transform">
@@ -1101,29 +1172,16 @@ Thank you for choosing Krispy King!
           </div>
         </div>
       </header>
+      </div>
 
       {/* Main Content Body */}
-      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-6">
+      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-6 pb-28">
         
         {/* ==============================================
              ROUTE: / (MENU BROWSER & COMBOS) 
              ============================================== */}
         {path === "/" && (
           <div className="space-y-6">
-            {/* Promo Marquee */}
-            <div className="bg-chicken-red text-white py-2 px-3 rounded-xl overflow-hidden shadow-sm border border-gold/40 relative flex items-center">
-              <div className="absolute left-0 top-0 bottom-0 bg-chicken-red px-3 z-10 flex items-center border-r border-gold/20 font-black text-gold text-xs italic uppercase tracking-wider">
-                DEALS 🔥
-              </div>
-              <div className="w-full overflow-hidden pl-20">
-                <div className="animate-marquee text-xs font-bold uppercase tracking-wide">
-                  <span>🚀 Try our newly introduced KAROLINA REAPER sauce on Grilled Chicken! Can you handle the heat? 🌶️🌶️🌶️</span>
-                  <span>🍗 2 Full Chicken Family Pack for just R189.90! Save massive rands! 🍗</span>
-                  <span>🍔 Smashed Burger Beef double deal R69.90 - juicy patties, melted cheese! 🍔</span>
-                  <span>🍹 Fresh ice cold mocktails starting at only R39.90! Mojitos, sunrises, lemonades! 🍹</span>
-                </div>
-              </div>
-            </div>
 
             {/* How to Use the App Toggle */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden transition-all duration-300">
@@ -3472,64 +3530,169 @@ Thank you for choosing Krispy King!
 
               {/* Combo Options selection form */}
               <div className="space-y-5">
-                {/* Spice Selector Option for all relevant items */}
-                {selectedComboItem.spiceLevel !== undefined && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
-                      🌶️ SELECT YOUR SPICE LEVEL:
-                    </label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            playBeep(600 + idx * 50, "sine", 0.04);
-                            setSelectedSpiceLevel(idx);
-                          }}
-                          className={`py-2 px-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-center border transition ${
-                            selectedSpiceLevel === idx
-                              ? "bg-chicken-red text-white border-chicken-red"
-                              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                {/* Individual Customization Checkbox if buying more than one full chicken */}
+                {parsedChickenCount > 1 && (
+                  <div className="bg-amber-50 border-2 border-black rounded-2xl p-4 flex items-center justify-between gap-3 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                    <div className="space-y-0.5">
+                      <span className="block text-xs font-black uppercase text-black">Customize individually?</span>
+                      <span className="block text-[10px] text-gray-600 font-bold">Choose unique spice and sauce for each chicken!</span>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isIndividualCustomizationEnabled}
+                        onChange={(e) => {
+                          playBeep(700, "sine", 0.05);
+                          setIsIndividualCustomizationEnabled(e.target.checked);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-chicken-red border-2 border-black" />
+                    </label>
                   </div>
                 )}
 
-                {/* Sauce Selector Option for all food items in combo */}
-                {selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails" && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
-                      🍯 SELECT YOUR SAUCE OPTION (ON THE SIDE):
-                    </label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { label: "No Sauce", value: "No Sauce" },
-                        { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
-                        { label: "Reaper (+R5) 🌶️", value: "Carolina Reaper Sauce (on the side)" }
-                      ].map((item, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            playBeep(600 + idx * 50, "sine", 0.04);
-                            setSelectedComboSauce(item.value);
-                          }}
-                          className={`py-2 px-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-center border transition ${
-                            (selectedComboSauce || "No Sauce") === item.value
-                              ? "bg-amber-500 text-white border-amber-500"
-                              : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
+                {/* Individual Chicken Customization lists */}
+                {isIndividualCustomizationEnabled && parsedChickenCount > 1 ? (
+                  <div className="space-y-4 border-l-2 border-dashed border-gold pl-3.5 mt-2">
+                    {Array.from({ length: parsedChickenCount }).map((_, idx) => {
+                      const selection = individualSelections[idx] || { spice: 1, sauce: "No Sauce" };
+                      const isFried = selectedComboItem.category.toLowerCase().includes("fried") || selectedComboItem.name.toLowerCase().includes("fried");
+                      return (
+                        <div key={idx} className="space-y-3 bg-gray-50 p-3.5 rounded-2xl border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                          <span className="block text-xs font-black uppercase text-chicken-red tracking-wider flex items-center gap-1">
+                            🍗 Chicken #{idx + 1}:
+                          </span>
+                          
+                          {/* Spice Level for Chicken #idx (only if not fried chicken) */}
+                          {!isFried && (
+                            <div className="space-y-1">
+                              <span className="block text-[10px] font-black uppercase text-gray-500">Spice Level:</span>
+                              <div className="grid grid-cols-4 gap-1">
+                                {["Lemon/Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Ex-Hot 🌶️🌶️🌶️"].map((label, sIdx) => (
+                                  <button
+                                    key={sIdx}
+                                    type="button"
+                                    onClick={() => {
+                                      playBeep(600 + sIdx * 50, "sine", 0.03);
+                                      setIndividualSelections((prev) => {
+                                        const updated = [...prev];
+                                        if (!updated[idx]) updated[idx] = { spice: 1, sauce: "No Sauce" };
+                                        updated[idx] = { ...updated[idx], spice: sIdx };
+                                        return updated;
+                                      });
+                                    }}
+                                    className={`py-1 px-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider text-center border-2 border-black transition ${
+                                      selection.spice === sIdx
+                                        ? "bg-chicken-red text-white"
+                                        : "bg-white text-gray-700 hover:bg-gray-100"
+                                    }`}
+                                  >
+                                    {label.split(" ")[0]}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Sauce Option for Chicken #idx */}
+                          <div className="space-y-1 mt-2">
+                            <span className="block text-[10px] font-black uppercase text-gray-500">Sauce Side:</span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {[
+                                { label: "None", value: "No Sauce" },
+                                { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                                { label: "Reaper (+R5) 🌶️", value: "Carolina Reaper Sauce (on the side)" }
+                              ].map((sauceItem, sIdx) => (
+                                <button
+                                  key={sIdx}
+                                  type="button"
+                                  onClick={() => {
+                                    playBeep(600 + sIdx * 50, "sine", 0.03);
+                                    setIndividualSelections((prev) => {
+                                      const updated = [...prev];
+                                      if (!updated[idx]) updated[idx] = { spice: 1, sauce: "No Sauce" };
+                                      updated[idx] = { ...updated[idx], sauce: sauceItem.value };
+                                      return updated;
+                                    });
+                                  }}
+                                  className={`py-1 px-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider text-center border-2 border-black transition ${
+                                    selection.sauce === sauceItem.value
+                                      ? "bg-amber-500 text-white"
+                                      : "bg-white text-gray-700 hover:bg-gray-100"
+                                  }`}
+                                >
+                                  {sauceItem.label.split(" ")[0]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                ) : (
+                  <>
+                    {/* Spice Selector Option (exclude for fried chicken) */}
+                    {selectedComboItem.spiceLevel !== undefined && !(selectedComboItem.category.toLowerCase().includes("fried") || selectedComboItem.name.toLowerCase().includes("fried")) && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
+                          🌶️ SELECT YOUR SPICE LEVEL:
+                        </label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                playBeep(600 + idx * 50, "sine", 0.04);
+                                setSelectedSpiceLevel(idx);
+                              }}
+                              className={`py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider text-center border-2 border-black transition ${
+                                selectedSpiceLevel === idx
+                                  ? "bg-chicken-red text-white"
+                                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sauce Selector Option for all food items in combo */}
+                    {selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails" && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
+                          🍯 SELECT YOUR SAUCE OPTION (ON THE SIDE):
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { label: "No Sauce", value: "No Sauce" },
+                            { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                            { label: "Reaper (+R5) 🌶️", value: "Carolina Reaper Sauce (on the side)" }
+                          ].map((item, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                playBeep(600 + idx * 50, "sine", 0.04);
+                                setSelectedComboSauce(item.value);
+                              }}
+                              className={`py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider text-center border-2 border-black transition ${
+                                (selectedComboSauce || "No Sauce") === item.value
+                                  ? "bg-amber-500 text-white"
+                                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Meal Combo specific dropdown options */}
@@ -3760,8 +3923,8 @@ Thank you for choosing Krispy King!
       {/* Permanent bottom fade to black (infinity edge / void feel) */}
       <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/75 via-black/35 to-transparent pointer-events-none z-[9999]" />
 
-      {/* Floating Quick Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3.5 z-[10000]">
+      {/* Floating Quick Action Buttons (Bottom Center Side-by-Side) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-row items-center justify-center gap-4 z-[10000] w-auto">
         {/* Passes FAB */}
         {path !== "/passes" && (
           <button
@@ -3769,7 +3932,7 @@ Thank you for choosing Krispy King!
               playBeep(750, "sine", 0.05);
               navigate("/passes");
             }}
-            className="relative w-14 h-14 bg-black text-gold rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-gray-900 transition-all active:scale-95 group"
+            className="relative w-14 h-14 bg-black text-gold rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-gray-900 transition-all active:scale-95 group shrink-0"
             title="View Digital Passes"
           >
             <QrCode className="w-6 h-6 stroke-[2.5]" />
@@ -3778,7 +3941,7 @@ Thank you for choosing Krispy King!
                 {customerPasses.length}
               </span>
             )}
-            <span className="absolute right-16 top-1/2 -translate-y-1/2 bg-black text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+            <span className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
               My Passes
             </span>
           </button>
@@ -3791,7 +3954,7 @@ Thank you for choosing Krispy King!
               playBeep(850, "sine", 0.05);
               navigate("/cart");
             }}
-            className="relative w-14 h-14 bg-chicken-red text-white rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-red-700 transition-all active:scale-95 group"
+            className="relative w-14 h-14 bg-chicken-red text-white rounded-full border-2 border-black flex items-center justify-center shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-red-700 transition-all active:scale-95 group shrink-0"
             title="View Shopping Cart"
           >
             <ShoppingBag className="w-6 h-6 text-gold stroke-[2.5]" />
@@ -3800,7 +3963,7 @@ Thank you for choosing Krispy King!
                 {cartTotalItems}
               </span>
             )}
-            <span className="absolute right-16 top-1/2 -translate-y-1/2 bg-chicken-red text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+            <span className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-chicken-red text-gold border-2 border-black text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
               My Cart
             </span>
           </button>

@@ -140,7 +140,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
           </div>
 
           {/* Spice level adjustment (if item is not a meal combo and has optional spice level) */}
-          {available && !item.isCombo && item.category !== "Meals & Combos" && item.spiceLevel !== undefined && item.spiceLevel > 0 && (
+          {available && !item.isCombo && item.category !== "Meals & Combos" && !(item.category.toLowerCase().includes("fried") || item.name.toLowerCase().includes("fried")) && item.spiceLevel !== undefined && item.spiceLevel > 0 && (
             <div className="space-y-3 bg-red-50/50 border border-red-100 p-4 rounded-xl">
               <label className="block text-xs font-black uppercase text-chicken-red tracking-wider flex items-center gap-1">
                 <Flame className="w-4 h-4 fill-chicken-red text-chicken-red" />
