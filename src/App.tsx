@@ -1277,7 +1277,7 @@ Thank you for choosing Krispy King!
               <div className="bg-black text-gold px-4 py-2 flex items-center justify-between border-b-2 border-black text-[10px] font-black uppercase tracking-widest select-none">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-red-500 rounded-full animate-ping shrink-0" />
-                  <span className="text-white">LIVE BILLBOARD</span>
+                  <span className="text-white">LIVE DEALS</span>
                   <span className="text-gold hidden sm:inline">// DEALS & UPGRADES</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1307,6 +1307,21 @@ Thank you for choosing Krispy King!
 
               {/* Billboard Slides Content */}
               <div className="relative min-h-[220px] md:min-h-[160px] flex items-center bg-gradient-to-br from-amber-50 to-orange-50/30 overflow-hidden">
+                {/* Tech/Tactile Grid Pattern overlay for depth and texture */}
+                <div 
+                  className="absolute inset-0 opacity-[0.06] pointer-events-none" 
+                  style={{ 
+                    backgroundImage: `
+                      linear-gradient(to right, rgba(0, 0, 0, 0.5) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 1px, transparent 1px)
+                    `,
+                    backgroundSize: '16px 16px'
+                  }} 
+                />
+                
+                {/* Ambient glow light accent behind the billboard content */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gold/15 rounded-full blur-3xl pointer-events-none" />
+
                 <AnimatePresence mode="wait">
                   {billboardSlide === 0 ? (
                     <motion.div
@@ -1315,7 +1330,7 @@ Thank you for choosing Krispy King!
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
+                      className="relative z-10 w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
                     >
                       <div className="absolute -right-6 -bottom-6 text-9xl opacity-[0.06] pointer-events-none select-none rotate-12">
                         🍗
@@ -1362,7 +1377,7 @@ Thank you for choosing Krispy King!
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
+                      className="relative z-10 w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
                     >
                       <div className="absolute -right-6 -bottom-6 text-9xl opacity-[0.06] pointer-events-none select-none rotate-12">
                         🍟
