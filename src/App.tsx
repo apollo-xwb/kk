@@ -61,11 +61,8 @@ const MENU_CATEGORIES = [
   "Karolina Reaper Wings",
   "Burgers",
   "Chicken Twista",
-  "Meals & Combos",
   "Family Meals",
   "Sides & Extras",
-  "Breakfast Menu",
-  "Kiddies Meals",
   "Beverages",
   "Mocktails"
 ];
@@ -427,9 +424,14 @@ export default function App() {
     if (resolvedSpice > 0) {
       cartKey["Spice Level"] = selectedSpiceLabel;
     }
+    
+    const resolvedSauce = sauceOver || "No Sauce";
     if (item.category !== "Beverages" && item.category !== "Mocktails") {
-      cartKey["Sauce Option"] = sauceOver || "No Sauce";
+      cartKey["Sauce Option"] = resolvedSauce;
     }
+    
+    const sauceExtra = resolvedSauce === "Carolina Reaper Sauce (on the side)" ? 5.00 : 0;
+    const finalUnitPrice = item.price + sauceExtra;
     
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
@@ -447,7 +449,7 @@ export default function App() {
             menuItem: item,
             quantity: 1,
             selectedOptions: cartKey,
-            unitPrice: item.price
+            unitPrice: finalUnitPrice
           }
         ];
       }
@@ -480,7 +482,10 @@ export default function App() {
       selectedOptionsRecord["Sauce Option"] = selectedComboSauce || "No Sauce";
     }
 
-    const calculatedUnitPrice = selectedComboItem.price + addedPrice;
+    let calculatedUnitPrice = selectedComboItem.price + addedPrice;
+    if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") {
+      calculatedUnitPrice += 5.00;
+    }
 
     setCart((prevCart) => {
       // Find if we already have the exact same combo item with exact same options
@@ -538,6 +543,39 @@ export default function App() {
       handleAddToCart(item);
     }
   };
+
+  const cartHasChips = useMemo(() => {
+    return cart.some((item) => {
+      const name = item.menuItem.name.toLowerCase();
+      const desc = (item.menuItem.description || "").toLowerCase();
+      const optStr = JSON.stringify(item.selectedOptions || "").toLowerCase();
+      return (
+        name.includes("chips") ||
+        name.includes("fries") ||
+        desc.includes("chips") ||
+        desc.includes("fries") ||
+        optStr.includes("with chips") ||
+        item.menuItem.id === "s-chips-small" ||
+        item.menuItem.id === "s-chips-regular" ||
+        item.menuItem.id === "s-chips-large"
+      );
+    });
+  }, [cart]);
+
+  const showWholeChickenUpsell = useMemo(() => {
+    return cart.some((item) => {
+      const name = item.menuItem.name.toLowerCase();
+      const desc = (item.menuItem.description || "").toLowerCase();
+      const cat = item.menuItem.category.toLowerCase();
+      const optStr = JSON.stringify(item.selectedOptions || "").toLowerCase();
+      
+      const isFullChicken = name.includes("full chicken") || optStr.includes("full chicken") || item.menuItem.id === "fm-fafa-grilled" || item.menuItem.id === "fm-fiesta-grilled";
+      const isMegaGrilled = name.includes("mega grilled") || item.menuItem.id === "fm-mega-grilled";
+      const isGrilledMeal = cat.includes("grilled") || name.includes("grilled") || desc.includes("grilled");
+      
+      return isFullChicken || isMegaGrilled || isGrilledMeal;
+    });
+  }, [cart]);
 
   // Checkout submission state
   const [customerName, setCustomerName] = useState<string>("");
@@ -1608,25 +1646,63 @@ Thank you for choosing Krispy King!
                 </div>
 
                 {/* Upsell / Side Item Quick-Add Section */}
-                <div className="bg-amber-50 border border-gold/40 p-4 rounded-xl space-y-3">
-                  <span className="text-[10px] font-black uppercase text-orange bg-yellow-400/80 px-2 py-0.5 rounded border border-yellow-500">
-                    Hungry for more? Quick Add-on
-                  </span>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🍟</span>
-                      <div>
-                        <span className="block text-xs font-black uppercase text-gray-900">Add regular chips for only R32.90</span>
-                        <span className="block text-[10px] text-gray-500">Perfect crisp complement to any grilled chicken meal!</span>
+                <div className="space-y-3">
+                  {!cartHasChips && (
+                    <div className="bg-amber-50 border border-gold/40 p-4 rounded-xl space-y-3 shadow-sm">
+                      <span className="text-[10px] font-black uppercase text-orange bg-yellow-400/80 px-2 py-0.5 rounded border border-yellow-500">
+                        🍟 Hungry for more? Quick Add-on
+                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🍟</span>
+                          <div>
+                            <span className="block text-xs font-black uppercase text-gray-900">Add regular chips for R32.90</span>
+                            <span className="block text-[10px] text-gray-500">Perfect crisp complement to your order!</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => addQuickAddOn("s-chips-regular")}
+                          className="px-3 py-1.5 bg-gold hover:bg-yellow-400 text-black text-xs font-black rounded-lg uppercase tracking-wider transition shrink-0 shadow-sm"
+                        >
+                          Quick Add
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => addQuickAddOn("s-chips-regular")}
-                      className="px-3 py-1.5 bg-gold hover:bg-yellow-400 text-black text-xs font-black rounded-lg uppercase tracking-wider transition shrink-0 shadow-sm"
-                    >
-                      Quick Add
-                    </button>
-                  </div>
+                  )}
+
+                  {showWholeChickenUpsell && (
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-xl space-y-3 shadow-sm">
+                      <span className="text-[10px] font-black uppercase text-white bg-chicken-red px-2 py-0.5 rounded border border-red-600">
+                        🍗 Whole Grilled Chicken Deal - R99.00
+                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🍗</span>
+                          <div>
+                            <span className="block text-xs font-black uppercase text-gray-900">Add Whole Flame-Grilled Chicken</span>
+                            <span className="block text-[10px] text-gray-500">Special R99 promo for choosing our premium meals!</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const customWholeChicken: MenuItem = {
+                              id: "promo-whole-chicken",
+                              name: "Whole Flame-Grilled Chicken (Promo)",
+                              category: "Grilled Chicken",
+                              price: 99.00,
+                              description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
+                              imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
+                              spiceLevel: 1
+                            };
+                            handleAddToCart(customWholeChicken);
+                          }}
+                          className="px-3 py-1.5 bg-chicken-red hover:bg-red-700 text-white text-xs font-black rounded-lg uppercase tracking-wider transition shrink-0 shadow-sm"
+                        >
+                          Add Deal
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Subtotal & Call to Action */}
@@ -3246,7 +3322,7 @@ Thank you for choosing Krispy King!
                       {[
                         { label: "No Sauce", value: "No Sauce" },
                         { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
-                        { label: "Reaper 🌶️", value: "Carolina Reaper Sauce (on the side)" }
+                        { label: "Reaper (+R5) 🌶️", value: "Carolina Reaper Sauce (on the side)" }
                       ].map((item, idx) => (
                         <button
                           key={idx}

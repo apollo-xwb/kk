@@ -57,56 +57,106 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     name: "1pc Fried Chicken",
     category: "Fried Chicken",
     price: 21.90,
-    description: "One piece of crispy, golden fried chicken.",
+    description: "One piece of crispy, golden fried chicken. Option to add chips.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_1.webp",
-    servingSize: "1 Piece"
+    servingSize: "1 Piece",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Fries/Chips Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 10.00 }
+        ]
+      }
+    ]
   },
   {
     id: "f-2pc",
-    name: "2pc + Chips",
+    name: "2pc Fried Chicken",
     category: "Fried Chicken",
-    price: 39.90,
-    description: "Two pieces of crispy, golden fried chicken served with a portion of chips.",
+    price: 36.90,
+    description: "Two pieces of crispy, golden fried chicken. Option to add chips.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_2.webp",
-    servingSize: "2 Pieces"
+    servingSize: "2 Pieces",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Fries/Chips Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 5.00 }
+        ]
+      }
+    ]
   },
   {
     id: "f-3pc",
-    name: "3pc + Chips",
+    name: "3pc Fried Chicken",
     category: "Fried Chicken",
     price: 54.90,
-    description: "Three pieces of crunchy golden fried chicken and hot golden chips.",
+    description: "Three pieces of crunchy golden fried chicken. Option to add chips.",
     spiceLevel: 1,
     isPopular: true,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_3.webp",
-    servingSize: "3 Pieces"
+    servingSize: "3 Pieces",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Fries/Chips Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 15.00 }
+        ]
+      }
+    ]
   },
   {
     id: "f-4pc",
-    name: "4pc + Chips",
+    name: "4pc Fried Chicken",
     category: "Fried Chicken",
     price: 69.90,
-    description: "Four pieces of legendary crunchy fried chicken and golden chips.",
+    description: "Four pieces of legendary crunchy fried chicken. Option to add chips.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_4.webp",
-    servingSize: "4 Pieces"
+    servingSize: "4 Pieces",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Fries/Chips Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 20.00 }
+        ]
+      }
+    ]
   },
   {
     id: "f-8pc",
-    name: "8pc + Chips",
+    name: "8pc Fried Chicken",
     category: "Fried Chicken",
-    price: 119.90,
-    description: "Eight pieces of delicious fried chicken and a generous helping of chips.",
+    price: 124.90,
+    description: "Eight pieces of delicious fried chicken. Option to add chips.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/krispy_8.webp",
-    servingSize: "8 Pieces"
+    servingSize: "8 Pieces",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Fries/Chips Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 25.00 }
+        ]
+      }
+    ]
   },
 
   // --- KRISPY FRIED TENDERS ---
@@ -114,7 +164,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     id: "t-tenders-main",
     name: "Krispy Fried Tenders",
     category: "Krispy Fried Tenders",
-    price: 19.90,
+    price: 24.90,
     description: "Crispy, golden chicken tenders served with our signature dipping sauce.",
     spiceLevel: 0,
     isAvailable: true,
@@ -124,9 +174,9 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "1pc Tender (R19.90)", priceModifier: 0 },
-          { label: "2pc Tenders (R39.90)", priceModifier: 20.00 },
-          { label: "3pc Tenders + Chips (R59.90)", priceModifier: 40.00 }
+          { label: "1pc Tender (R24.90)", priceModifier: 0 },
+          { label: "2pc Tenders (R44.90)", priceModifier: 20.00 },
+          { label: "3pc Tenders + Chips (R64.90)", priceModifier: 40.00 }
         ]
       }
     ]
@@ -168,7 +218,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     id: "kb-burger-main",
     name: "King Fried Burger",
     category: "King Fried Burgers",
-    price: 39.90,
+    price: 37.90,
     description: "Crispy chicken burger with our signature king patties and golden chips.",
     spiceLevel: 1,
     isAvailable: true,
@@ -178,12 +228,12 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Size & Sides",
         choices: [
-          { label: "Single King Burger (R39.90)", priceModifier: 0 },
-          { label: "Single King + Chips (R49.90)", priceModifier: 10.00 },
-          { label: "Double King Burger (R54.90)", priceModifier: 15.00 },
-          { label: "Double King + Chips (R69.90)", priceModifier: 30.00 },
-          { label: "Triple King Burger (R64.90)", priceModifier: 25.00 },
-          { label: "Triple King + Chips (R79.90)", priceModifier: 40.00 }
+          { label: "Single King Burger (R37.90)", priceModifier: 0 },
+          { label: "Single King + Chips (R52.90)", priceModifier: 15.00 },
+          { label: "Double King Burger (R59.90)", priceModifier: 22.00 },
+          { label: "Double King + Chips (R74.90)", priceModifier: 37.00 },
+          { label: "Triple King Burger (R74.90)", priceModifier: 37.00 },
+          { label: "Triple King + Chips (R89.90)", priceModifier: 52.00 }
         ]
       }
     ]
@@ -214,60 +264,33 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 
   // --- BURGERS ---
   {
-    id: "b-chicken",
-    name: "Chicken Burger",
+    id: "b-double-deal",
+    name: "Double Burger Deal",
     category: "Burgers",
-    price: 36.90,
-    description: "Crispy fried chicken breast fillet on a toasted bun with mayo and lettuce.",
-    spiceLevel: 1,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single"
-  },
-  {
-    id: "b-beef",
-    name: "Beef Burger",
-    category: "Burgers",
-    price: 36.90,
-    description: "Juicy flame-grilled 100% beef patty with gherkins, lettuce, tomato and burger sauce.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single"
-  },
-  {
-    id: "b-double-chicken",
-    name: "Double Chicken Burger",
-    category: "Burgers",
-    price: 59.90,
-    description: "Two crispy chicken breast fillets layered with fresh lettuce, mayo and melted cheese.",
+    price: 69.90,
+    description: "Get two of our delicious burgers in one great deal! Choose Chicken or Beef, Fried or Grilled.",
     spiceLevel: 1,
     isPopular: true,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Double"
-  },
-  {
-    id: "b-double-beef",
-    name: "Double Beef Burger",
-    category: "Burgers",
-    price: 59.90,
-    description: "Double beef patties, double the flavor! Melted cheddar cheese, gherkins and fresh salad.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Double"
-  },
-  {
-    id: "b-rib",
-    name: "Rib Burger",
-    category: "Burgers",
-    price: 69.90,
-    description: "Sweet and sticky flame-grilled rib patty on a fresh bun with gherkins and onion.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
-    servingSize: "Single"
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Burger Style Option",
+        choices: [
+          { label: "Chicken (Fried)", priceModifier: 0 },
+          { label: "Chicken (Grilled)", priceModifier: 0 },
+          { label: "Beef (Grilled)", priceModifier: 0 }
+        ]
+      },
+      {
+        name: "Chips Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 15.00 }
+        ]
+      }
+    ]
   },
 
   // --- MEALS & COMBOS ---
@@ -703,7 +726,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     id: "s-coleslaw",
     name: "Coleslaw",
     category: "Sides & Extras",
-    price: 21.90,
+    price: 39.90,
     description: "Creamy, fresh-shredded cabbage and carrot salad.",
     spiceLevel: 0,
     isAvailable: true,
@@ -1024,23 +1047,28 @@ const RAW_MENU_ITEMS: MenuItem[] = [
   // --- CHICKEN TWISTA ---
   {
     id: "ct-twista-main",
-    name: "Chicken Twista",
+    name: "Fully Loaded Twista",
     category: "Chicken Twista",
     price: 49.90,
-    description: "Premium wrapped chicken strips with your choice of filling and style.",
+    description: "Premium wrapped chicken strips loaded with fresh ingredients, available in both grilled and fried styles.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Twista-1.jpg",
     isCombo: true,
     comboOptions: [
       {
-        name: "Style & Fillings",
+        name: "Preparation Style",
         choices: [
-          { label: "Fried strips with salads (R49.90)", priceModifier: 0 },
-          { label: "Coleslaw with fried strips (R49.90)", priceModifier: 0 },
-          { label: "Grilled strips with salads (R49.90)", priceModifier: 0 },
-          { label: "Coleslaw with grilled strips (R49.90)", priceModifier: 0 },
-          { label: "Feta, jalapenos, chips & salads (R59.90)", priceModifier: 10.00 }
+          { label: "Crispy Fried", priceModifier: 0 },
+          { label: "Flame-Grilled", priceModifier: 0 }
+        ]
+      },
+      {
+        name: "Fillings Option",
+        choices: [
+          { label: "Standard Loaded Salad & Sauce", priceModifier: 0 },
+          { label: "Creamy Coleslaw Filling", priceModifier: 0 },
+          { label: "Feta, Jalapenos & Chips (+R10.00)", priceModifier: 10.00 }
         ]
       }
     ]
@@ -1137,7 +1165,12 @@ const mapItemImage = (item: MenuItem): string => {
   return "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/logo.webp";
 };
 
-export const MENU_ITEMS: MenuItem[] = RAW_MENU_ITEMS.map((item) => ({
-  ...item,
-  imageUrl: mapItemImage(item),
-}));
+export const MENU_ITEMS: MenuItem[] = RAW_MENU_ITEMS
+  .filter((item) => {
+    const cat = item.category.toLowerCase();
+    return cat !== "breakfast menu" && cat !== "kiddies meals" && cat !== "meals & combos";
+  })
+  .map((item) => ({
+    ...item,
+    imageUrl: mapItemImage(item),
+  }));

@@ -166,7 +166,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
           )}
 
           {/* Sauce selection (for all food items: i.e., category is not Beverages or Mocktails) */}
-          {available && item.category !== "Beverages" && item.category !== "Mocktails" && (
+          {available && !item.isCombo && item.category !== "Beverages" && item.category !== "Mocktails" && (
             <div className="space-y-3 bg-amber-50/50 border border-amber-100 p-4 rounded-xl">
               <label className="block text-xs font-black uppercase text-amber-800 tracking-wider flex items-center gap-1 font-semibold">
                 🍯 Select Your Sauce Option (comes on the side)
