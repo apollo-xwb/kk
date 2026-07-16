@@ -23,6 +23,17 @@
       "type": "object",
       "properties": {},
       "required": []
+    },
+    "NfcBeacon": {
+      "title": "NfcBeacon",
+      "description": "A contactless NFC beacon signal sent by a client to simulate or execute a physical tap",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "passCode": { "type": "string", "pattern": "^KK-[A-Z0-9]+$" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "passCode", "timestamp"]
     }
   },
   "firestore": {
@@ -33,6 +44,10 @@
     "admin_config/menu_status": {
       "schema": "#/entities/MenuStatus",
       "description": "Document tracking which menu items are currently available"
+    },
+    "nfc_beacons/{beaconId}": {
+      "schema": "#/entities/NfcBeacon",
+      "description": "Contactless NFC beacon records for real-time customer pass claiming"
     }
   }
 }

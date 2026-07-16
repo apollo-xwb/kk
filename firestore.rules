@@ -34,6 +34,14 @@ service cloud.firestore {
         && (!data.keys().hasAll(['completedAt']) || data.completedAt is number);
     }
 
+    // Entity validator for NfcBeacon
+    function isValidNfcBeacon(data) {
+      return data.keys().hasAll(['id', 'passCode', 'timestamp'])
+        && data.id is string && data.id.size() <= 128
+        && data.passCode is string && data.passCode.size() <= 30
+        && data.timestamp is number;
+    }
+
     // Rule: admin_config collection
     match /admin_config/{configId} {
       allow read: if true;
@@ -46,6 +54,13 @@ service cloud.firestore {
       allow create: if isValidId(orderId) && orderId == incoming().id && isValidOrder(incoming());
       allow update: if isValidId(orderId) && isValidOrder(incoming()) && incoming().createdAt == existing().createdAt && incoming().id == existing().id;
       allow delete: if isValidId(orderId);
+    }
+
+    // Rule: nfc_beacons collection
+    match /nfc_beacons/{beaconId} {
+      allow read: if true;
+      allow create: if isValidId(beaconId) && beaconId == incoming().id && isValidNfcBeacon(incoming());
+      allow delete: if isValidId(beaconId);
     }
   }
 }

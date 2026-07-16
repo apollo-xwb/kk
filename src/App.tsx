@@ -41,6 +41,7 @@ import { MENU_ITEMS } from "./data";
 import { MenuItemCard } from "./components/MenuItemCard";
 import { ItemDetailsModal } from "./components/ItemDetailsModal";
 import { QRCodeSVG } from "qrcode.react";
+import { LiveQRScanner } from "./components/LiveQRScanner";
 import { 
   collection, 
   doc, 
@@ -226,6 +227,12 @@ export default function App() {
   const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
   const [isOffline, setIsOffline] = useState<boolean>(false);
 
+  // --- NFC and Contactless Beacon States ---
+  const [isNfcListenerActive, setIsNfcListenerActive] = useState<boolean>(false);
+  const [isNfcWriting, setIsNfcWriting] = useState<boolean>(false);
+  const [isNfcReading, setIsNfcReading] = useState<boolean>(false);
+  const ndefReaderRef = useRef<any>(null);
+
   // --- Logo secret tap to open staff view ---
   const [logoTapCount, setLogoTapCount] = useState<number>(0);
   const logoTapTimeoutRef = useRef<any>(null);
@@ -323,6 +330,39 @@ export default function App() {
 
     return () => unsubscribe();
   }, [isMuted]);
+
+  // Real-Time Contactless NFC Beacon listener for Staff Portal
+  useEffect(() => {
+    if (!isNfcListenerActive) return;
+
+    // Listen to latest beacons
+    const q = query(collection(db, "nfc_beacons"), orderBy("timestamp", "desc"));
+    const listenerStartTime = Date.now() - 15000; // within last 15 seconds
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) return;
+      
+      const latestDoc = snapshot.docs[0];
+      const data = latestDoc.data();
+      
+      if (data.timestamp > listenerStartTime) {
+        // Find matching active order
+        const matched = orders.find(
+          (o) => o.passCode === data.passCode || o.id === data.passCode
+        );
+        if (matched) {
+          playBeep(1200, "sine", 0.15);
+          setSearchedOrder(matched);
+          setManualCodeInput(matched.passCode);
+          triggerToast(`Contactless NFC Tap: ${matched.passCode} matched!`, "success");
+        }
+      }
+    }, (error) => {
+      console.error("NFC Beacon listener error:", error);
+    });
+
+    return () => unsubscribe();
+  }, [isNfcListenerActive, orders]);
 
   // Sync Menu Availability
   useEffect(() => {
@@ -455,7 +495,7 @@ export default function App() {
   // --- QR Scanner / Code Verification Screen States ---
   const [manualCodeInput, setManualCodeInput] = useState<string>("");
   const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
-  const [scannerSimulationMode, setScannerSimulationMode] = useState<boolean>(false);
+  const [verifyMode, setVerifyMode] = useState<"manual" | "qr" | "nfc">("manual");
   const [simulatedSelectOrderId, setSimulatedSelectOrderId] = useState<string>("");
 
   // PIN Verification Modal States
@@ -815,18 +855,26 @@ export default function App() {
     }
   };
 
-  // Simulate scanning a code
-  const handleSimulateScan = () => {
-    if (!simulatedSelectOrderId) {
-      triggerToast("Select an order to simulate", "error");
-      return;
-    }
-    const order = orders.find((o) => o.id === simulatedSelectOrderId);
-    if (order) {
-      setSearchedOrder(order);
-      setManualCodeInput(order.passCode);
-      playBeep(1200, "sine", 0.1);
-      triggerToast(`Successfully scanned ${order.passCode}!`, "success");
+  // Handle actual scanned QR/NFC/Manual Code lookup match in real-time
+  const handleScanMatch = (scannedText: string) => {
+    if (!scannedText) return;
+    const formatted = scannedText.trim().toUpperCase();
+    
+    // Scanned text can be the full passcode (e.g. "KK-38F2"), a raw passcode segment ("38F2"), or even the order ID
+    const matched = orders.find(
+      (o) => o.passCode === formatted || 
+             o.passCode.replace("KK-", "") === formatted ||
+             o.id === scannedText
+    );
+
+    if (matched) {
+      setSearchedOrder(matched);
+      setManualCodeInput(matched.passCode);
+      playBeep(1200, "sine", 0.15);
+      triggerToast(`Pass code matched! Loaded order for ${matched.customerName}.`, "success");
+    } else {
+      playBeep(220, "sawtooth", 0.15);
+      triggerToast(`Scanned: "${formatted}" but no active matching order found.`, "error");
     }
   };
 
@@ -939,8 +987,28 @@ Thank you for choosing Krispy King!
   };
 
   // Download Branded Staff Training Manual (PDF)
-  const handleDownloadTrainingManual = () => {
+  const handleDownloadTrainingManual = async () => {
     playBeep(920, "sine", 0.1);
+    triggerToast("Generating PDF manual...", "info");
+
+    const loadLogo = (): Promise<HTMLImageElement | null> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = "/logo.png";
+        img.onload = () => resolve(img);
+        img.onerror = () => {
+          // Fallback to the web WebP logo
+          const imgFallback = new Image();
+          imgFallback.crossOrigin = "anonymous";
+          imgFallback.src = "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/logo.webp";
+          imgFallback.onload = () => resolve(imgFallback);
+          imgFallback.onerror = () => resolve(null);
+        };
+      });
+    };
+
+    const logoImg = await loadLogo();
     const docObj = new jsPDF();
 
     // Helper: draw Header/Footer on normal pages (pages 2+)
@@ -956,10 +1024,22 @@ Thank you for choosing Krispy King!
       docObj.setTextColor(17, 24, 39);
       docObj.text("KRISPY KING OPERATIONAL TRAINING MANUAL", 15, 12);
 
-      docObj.setFont("helvetica", "normal");
-      docObj.setFontSize(8);
-      docObj.setTextColor(107, 114, 128);
-      docObj.text("SESSION 1: LAUNCH & QUEUE-BUSTING FLOWS", 195, 12, { align: "right" });
+      if (logoImg) {
+        try {
+          docObj.addImage(logoImg, "PNG", 187, 5, 8, 8);
+        } catch (e) {
+          console.error("Error adding logo to page chrome:", e);
+        }
+        docObj.setFont("helvetica", "normal");
+        docObj.setFontSize(8);
+        docObj.setTextColor(107, 114, 128);
+        docObj.text("SESSION 1: LAUNCH & QUEUE-BUSTING FLOWS", 184, 12, { align: "right" });
+      } else {
+        docObj.setFont("helvetica", "normal");
+        docObj.setFontSize(8);
+        docObj.setTextColor(107, 114, 128);
+        docObj.text("SESSION 1: LAUNCH & QUEUE-BUSTING FLOWS", 195, 12, { align: "right" });
+      }
 
       // Footer
       docObj.setDrawColor(229, 231, 235);
@@ -989,21 +1069,30 @@ Thank you for choosing Krispy King!
 
     // Header Splash (Red block)
     docObj.setFillColor(186, 12, 47);
-    docObj.rect(12, 35, 186, 40, "F");
+    docObj.rect(12, 35, 186, 45, "F");
     
     // Gold separator line
     docObj.setFillColor(255, 215, 0);
-    docObj.rect(12, 75, 186, 4, "F");
+    docObj.rect(12, 80, 186, 4, "F");
 
-    // Title text inside splash
+    // Add Logo inside Splash
+    if (logoImg) {
+      try {
+        docObj.addImage(logoImg, "PNG", 97, 38, 16, 16);
+      } catch (e) {
+        console.error("Error adding logo to splash:", e);
+      }
+    }
+
+    // Title text inside splash (shifted slightly down to accommodate the logo)
     docObj.setFont("helvetica", "bold");
     docObj.setFontSize(28);
     docObj.setTextColor(255, 215, 0);
-    docObj.text("KRISPY KING", 105, 53, { align: "center" });
+    docObj.text("KRISPY KING", 105, 61, { align: "center" });
     
     docObj.setFontSize(14);
     docObj.setTextColor(255, 255, 255);
-    docObj.text("STAFF OPERATIONS & TRAINING MANUAL", 105, 66, { align: "center" });
+    docObj.text("STAFF OPERATIONS & TRAINING MANUAL", 105, 71, { align: "center" });
 
     // Logo stamp drawing (Gold crown & text)
     const stampX = 105;
@@ -1819,9 +1908,8 @@ Thank you for choosing Krispy King!
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto shrink-0">
+                      <div className="grid grid-cols-2 gap-2.5 w-full md:w-auto shrink-0">
                         {[
-                          { id: "s-chips-small", label: "Small", price: "R21.90" },
                           { id: "s-chips-regular", label: "Regular", price: "R32.90", isPopular: true },
                           { id: "s-chips-large", label: "Large", price: "R41.90" }
                         ].map((size) => (
@@ -2552,6 +2640,94 @@ Thank you for choosing Krispy King!
                     </button>
                   </div>
 
+                  {/* Contactless NFC Pass Claiming */}
+                  <div className="bg-black text-white p-4 rounded-2xl border border-gold/40 text-center space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full blur-xl -mr-6 -mt-6"></div>
+                    <div className="flex items-center justify-center gap-1.5 text-gold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                      <span className="text-xs font-black uppercase tracking-widest">
+                        ⚡ Contactless NFC Claiming
+                      </span>
+                    </div>
+                    
+                    <p className="text-[10px] text-gray-400 font-medium leading-normal uppercase">
+                      Tap your phone at the register to claim instantly via native Web NFC or our real-time cloud-synced contactless beacon.
+                    </p>
+
+                    <div className="flex flex-col gap-2 pt-1">
+                      {/* NFC Beacon Broadcast */}
+                      <button
+                        onClick={async () => {
+                          const beaconId = `beacon-${customerActiveOrder.id}-${Date.now()}`;
+                          const pathForWrite = `nfc_beacons/${beaconId}`;
+                          try {
+                            playBeep(900, "sine", 0.08);
+                            triggerToast("Broadcasting contactless NFC signal...", "info");
+                            await setDoc(doc(db, "nfc_beacons", beaconId), {
+                              id: beaconId,
+                              passCode: customerActiveOrder.passCode,
+                              timestamp: Date.now()
+                            });
+                            triggerToast("Contactless signal active! Staff register alerted.", "success");
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, pathForWrite);
+                          }
+                        }}
+                        className="w-full py-2 bg-gold hover:bg-yellow-400 text-black font-black uppercase text-[10px] tracking-wider rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                      >
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                        </span>
+                        Broadcast Contactless Tap (Beacon)
+                      </button>
+
+                      {/* Physical Web NFC Write */}
+                      <button
+                        onClick={async () => {
+                          if (!("NDEFReader" in window)) {
+                            triggerToast("Web NFC write is not supported on this device/browser. (Requires Chrome on Android)", "info");
+                            return;
+                          }
+                          setIsNfcWriting(true);
+                          playBeep(650, "sine", 0.05);
+                          try {
+                            const ndef = new (window as any).NDEFReader();
+                            await ndef.write({
+                              records: [{ recordType: "text", data: customerActiveOrder.passCode }]
+                            });
+                            triggerToast("Success! Pass written to physical NFC tag.", "success");
+                            playBeep(1200, "sine", 0.1);
+                          } catch (err) {
+                            console.error("NFC Write Error:", err);
+                            triggerToast(`NFC Write Failed: ${(err as Error).message}`, "error");
+                          } finally {
+                            setIsNfcWriting(false);
+                          }
+                        }}
+                        disabled={isNfcWriting}
+                        className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-gold border border-gold/30 font-black uppercase text-[10px] tracking-wider rounded-xl transition flex items-center justify-center gap-1.5"
+                      >
+                        {isNfcWriting ? (
+                          <>
+                            <span className="w-3.5 h-3.5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                            Writing Tag...
+                          </>
+                        ) : (
+                          <>
+                            <span>📂</span> Write Physical NFC Pass Tag
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {!("NDEFReader" in window) && (
+                      <span className="block text-[8px] text-gray-500 font-semibold uppercase leading-tight">
+                        Note: Physical NFC writing is disabled in standard iOS/desktop browsers. Use the "Broadcast Contactless Tap" beacon instead, which is fully supported here and syncs in real-time.
+                      </span>
+                    )}
+                  </div>
+
                   {/* Customer Self-Verification flow */}
                   {customerActiveOrder.status === "verified" && (
                     <div className="bg-amber-50 border border-gold rounded-2xl p-4 text-center space-y-3">
@@ -2985,36 +3161,47 @@ Thank you for choosing Krispy King!
                   <div className="max-w-xl mx-auto bg-white rounded-2xl border p-6 space-y-6 shadow-sm">
                     <div className="text-center space-y-2">
                       <h3 className="text-lg font-black text-black uppercase tracking-tight">Verify Pickup Pass</h3>
-                      <p className="text-xs text-gray-500">Scan customer QR code or enter code manually</p>
+                      <p className="text-xs text-gray-500">Scan customer pass via QR, NFC, or manual code entry</p>
                     </div>
 
                     {/* Selector choice for Verify Type */}
                     <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
                       <button
                         onClick={() => {
-                          setScannerSimulationMode(false);
+                          setVerifyMode("manual");
                           playBeep(650, "sine", 0.03);
                         }}
                         className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition ${
-                          !scannerSimulationMode ? "bg-black text-white" : "text-gray-600"
+                          verifyMode === "manual" ? "bg-black text-white" : "text-gray-600"
                         }`}
                       >
                         Manual Entry
                       </button>
                       <button
                         onClick={() => {
-                          setScannerSimulationMode(true);
+                          setVerifyMode("qr");
                           playBeep(650, "sine", 0.03);
                         }}
                         className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition ${
-                          scannerSimulationMode ? "bg-black text-white animate-pulse" : "text-gray-600"
+                          verifyMode === "qr" ? "bg-black text-white" : "text-gray-600"
                         }`}
                       >
-                        QR Camera Scanner
+                        QR Camera
+                      </button>
+                      <button
+                        onClick={() => {
+                          setVerifyMode("nfc");
+                          playBeep(650, "sine", 0.03);
+                        }}
+                        className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition ${
+                          verifyMode === "nfc" ? "bg-black text-white animate-pulse" : "text-gray-600"
+                        }`}
+                      >
+                        NFC & Beacon
                       </button>
                     </div>
 
-                    {!scannerSimulationMode ? (
+                    {verifyMode === "manual" && (
                       /* Manual Pass Code Search Form */
                       <div className="space-y-4">
                         <div className="flex gap-2">
@@ -3033,42 +3220,117 @@ Thank you for choosing Krispy King!
                           </button>
                         </div>
                       </div>
-                    ) : (
-                      /* QR Scanner Simulation Box */
-                      <div className="space-y-4 border rounded-2xl p-4 bg-gray-50 relative overflow-hidden">
-                        {/* Simulation overlays */}
-                        <div className="border-4 border-dashed border-chicken-red rounded-xl p-6 text-center space-y-3 relative bg-black/5">
-                          <Camera className="w-12 h-12 text-chicken-red mx-auto animate-pulse" />
-                          <div className="h-0.5 bg-chicken-red animate-bounce" />
-                          <span className="block text-[10px] font-black uppercase tracking-widest text-chicken-red">
-                            ACTIVE MOCK CAMERA VIEWFINDER
-                          </span>
+                    )}
 
-                          <div className="max-w-xs mx-auto space-y-3 bg-white p-3 rounded-lg shadow-md border">
-                            <label className="block text-left text-[9px] font-black uppercase text-gray-500">
-                              Simulate Pass scan choice:
-                            </label>
-                            <select
-                              value={simulatedSelectOrderId}
-                              onChange={(e) => setSimulatedSelectOrderId(e.target.value)}
-                              className="w-full text-xs p-1.5 border rounded focus:ring-1 focus:ring-gold bg-gray-50 uppercase font-bold"
-                            >
-                              <option value="">-- Choose active customer order --</option>
-                              {orders.filter(o => o.status === "pending" || o.status === "verified").map((o) => (
-                                <option key={o.id} value={o.id}>
-                                  {o.passCode} - {o.customerName}
-                                </option>
-                              ))}
-                            </select>
+                    {verifyMode === "qr" && (
+                      /* Live Camera-Based QR Scanner */
+                      <LiveQRScanner onScanSuccess={handleScanMatch} />
+                    )}
 
-                            <button
-                              onClick={handleSimulateScan}
-                              className="w-full py-1.5 bg-chicken-red hover:bg-red-700 text-white font-black uppercase text-[10px] rounded transition"
-                            >
-                              Simulate Scanner Beep
-                            </button>
+                    {verifyMode === "nfc" && (
+                      /* ⚡ Real Contactless NFC & Beacon Console */
+                      <div className="space-y-4 border-2 border-dashed border-gold rounded-2xl p-5 bg-black text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                        
+                        <div className="flex items-center justify-between border-b border-gold/20 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-3.5 h-3.5 rounded-full ${isNfcListenerActive ? "bg-emerald-500 animate-ping" : "bg-gray-500"}`} />
+                            <span className="font-mono font-black text-xs uppercase tracking-widest text-gold">
+                              {isNfcListenerActive ? "LISTENING IN REAL-TIME" : "NFC LISTENER STANDBY"}
+                            </span>
                           </div>
+                          
+                          <span className="text-[10px] font-black uppercase bg-zinc-900 border border-gold/20 px-2 py-0.5 rounded text-gray-400">
+                            Web NFC Supported: {"NDEFReader" in window ? "YES ✓" : "NO ✗"}
+                          </span>
                         </div>
+
+                        <p className="text-[10px] text-gray-300 font-medium leading-relaxed uppercase">
+                          Activates a direct, secure cloud-synced contactless beacon AND native Web NFC reader. When the customer broadcasts or taps their pass, the order updates instantly.
+                        </p>
+
+                        <div className="flex gap-2">
+                          {!isNfcListenerActive ? (
+                            <button
+                              onClick={async () => {
+                                playBeep(880, "sine", 0.08);
+                                setIsNfcListenerActive(true);
+                                triggerToast("Contactless cloud beacon reader active!", "success");
+                                
+                                if ("NDEFReader" in window) {
+                                  try {
+                                    setIsNfcReading(true);
+                                    const ndef = new (window as any).NDEFReader();
+                                    await ndef.scan();
+                                    ndefReaderRef.current = ndef;
+                                    triggerToast("Web NFC physical scanner initialized!", "success");
+
+                                    ndef.onreading = (event: any) => {
+                                      playBeep(1100, "sine", 0.1);
+                                      const { message } = event;
+                                      for (const record of message.records) {
+                                        if (record.recordType === "text") {
+                                          const decoder = new TextDecoder(record.encoding || "utf-8");
+                                          const decodedCode = decoder.decode(record.data).trim().toUpperCase();
+                                          
+                                          const matchedOrder = orders.find(
+                                            (o) => o.passCode === decodedCode || o.id === decodedCode
+                                          );
+                                          if (matchedOrder) {
+                                            setSearchedOrder(matchedOrder);
+                                            setManualCodeInput(matchedOrder.passCode);
+                                            triggerToast(`Physical NFC Tag Tapped: ${matchedOrder.passCode}!`, "success");
+                                          } else {
+                                            triggerToast(`NFC read: ${decodedCode} but no matching order.`, "error");
+                                          }
+                                        }
+                                      }
+                                    };
+
+                                    ndef.onreadingerror = () => {
+                                      triggerToast("NFC Read error. Try re-tapping the tag.", "error");
+                                    };
+
+                                  } catch (err) {
+                                    console.error("NFC scan error:", err);
+                                    triggerToast(`Physical NFC Scan failed: ${(err as Error).message}`, "error");
+                                    setIsNfcReading(false);
+                                  }
+                                }
+                              }}
+                              className="flex-1 py-3 bg-gold hover:bg-yellow-400 text-black font-black uppercase text-xs tracking-wider rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                            >
+                              <span>🚀</span> Activate NFC & Beacon Reader
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                playBeep(440, "sine", 0.08);
+                                setIsNfcListenerActive(false);
+                                setIsNfcReading(false);
+                                if (ndefReaderRef.current) {
+                                  ndefReaderRef.current = null;
+                                }
+                                triggerToast("Contactless listeners deactivated.", "info");
+                              }}
+                              className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-850 text-gold border border-gold font-black uppercase text-xs tracking-wider rounded-xl transition flex items-center justify-center gap-1.5"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                              Deactivate Listeners
+                            </button>
+                          )}
+                        </div>
+
+                        {isNfcListenerActive && (
+                          <div className="bg-zinc-900/50 p-3 rounded-lg border border-gold/10 text-center space-y-1">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 animate-pulse block">
+                              Listening for customer tap broadcast...
+                            </span>
+                            <span className="text-[8px] text-gray-500 font-semibold uppercase leading-none block">
+                              Keep this tab open while customers tap their phone or broadcast their pass at the counter.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 
