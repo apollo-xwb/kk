@@ -737,57 +737,6 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 
   // --- SIDES & EXTRAS ---
   {
-    id: "s-pap",
-    name: "Pap",
-    category: "Sides & Extras",
-    price: 21.90,
-    description: "Traditional soft South African maize meal porridge, served warm.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
-    id: "s-coleslaw",
-    name: "Coleslaw",
-    category: "Sides & Extras",
-    price: 39.90,
-    description: "Creamy, fresh-shredded cabbage and carrot salad.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
-    id: "s-livers-full",
-    name: "Livers (Full Portion)",
-    category: "Sides & Extras",
-    price: 36.90,
-    description: "Spicy flame-grilled chicken livers basted in chili and garlic sauce.",
-    spiceLevel: 2,
-    isPopular: true,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
-    id: "s-livers-half",
-    name: "Livers (Half Portion)",
-    category: "Sides & Extras",
-    price: 21.90,
-    description: "A half-helping of our legendary spicy, flame-grilled chicken livers.",
-    spiceLevel: 2,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
-    id: "s-chips-small",
-    name: "Chips (Small)",
-    category: "Sides & Extras",
-    price: 21.90,
-    description: "Crispy, golden-fried hot potato chips.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
     id: "s-chips-regular",
     name: "Chips (Regular)",
     category: "Sides & Extras",
@@ -809,41 +758,11 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
   },
   {
-    id: "s-rice",
-    name: "Rice",
-    category: "Sides & Extras",
-    price: 21.90,
-    description: "Savory yellow rice seasoned with local herbs.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
     id: "s-roll",
     name: "Roll",
     category: "Sides & Extras",
     price: 10.90,
     description: "Freshly baked soft bread roll with butter.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
-    id: "s-salad",
-    name: "Side Salad",
-    category: "Sides & Extras",
-    price: 21.90,
-    description: "Crisp garden lettuce, cucumber, tomato and light dressing.",
-    spiceLevel: 0,
-    isAvailable: true,
-    imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
-  },
-  {
-    id: "s-veg",
-    name: "Grilled Veg",
-    category: "Sides & Extras",
-    price: 21.90,
-    description: "Seasoned flame-grilled Mediterranean-style mixed vegetables.",
     spiceLevel: 0,
     isAvailable: true,
     imageUrl: "https://via.placeholder.com/300x200/F5F5F5/333333?text=Side+Item"
