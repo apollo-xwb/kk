@@ -35,6 +35,7 @@ import {
   FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { jsPDF } from "jspdf";
 import { MenuItem, CartItem, Order } from "./types";
 import { MENU_ITEMS } from "./data";
 import { MenuItemCard } from "./components/MenuItemCard";
@@ -57,7 +58,6 @@ const MENU_CATEGORIES = [
   "Fried Chicken",
   "Krispy Fried Tenders",
   "Krispy Fried Wings",
-  "King Fried Burgers",
   "Karolina Reaper Wings",
   "Burgers",
   "Chicken Twista",
@@ -376,7 +376,7 @@ export default function App() {
   const [comboSelections, setComboSelections] = useState<Record<string, { label: string; priceModifier: number }>>({});
   const [selectedSpiceLevel, setSelectedSpiceLevel] = useState<number>(1); // default Mild for spice-indicator items
   const [selectedComboSauce, setSelectedComboSauce] = useState<string>("No Sauce");
-  const [selectedFriesSize, setSelectedFriesSize] = useState<"None" | "Small" | "Regular" | "Large">("None");
+  const [selectedFriesSize, setSelectedFriesSize] = useState<"None" | "Regular" | "Large">("None");
 
   const [isIndividualCustomizationEnabled, setIsIndividualCustomizationEnabled] = useState<boolean>(false);
   const [individualSelections, setIndividualSelections] = useState<{ spice: number; sauce: string }[]>([]);
@@ -420,7 +420,7 @@ export default function App() {
       if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") addedPrice += 5.00;
     }
     if ((selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") && selectedFriesSize !== "None") {
-      addedPrice += selectedFriesSize === "Small" ? 21.90 : selectedFriesSize === "Regular" ? 32.90 : 41.90;
+      addedPrice += selectedFriesSize === "Regular" ? 20.00 : 35.00;
     }
     return selectedComboItem.price + addedPrice;
   }, [selectedComboItem, comboSelections, isIndividualCustomizationEnabled, parsedChickenCount, individualSelections, selectedComboSauce, selectedFriesSize]);
@@ -578,7 +578,7 @@ export default function App() {
       // Add Fries option for Grilled Chicken
       if (selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") {
         if (selectedFriesSize !== "None") {
-          const friesPrice = selectedFriesSize === "Small" ? 21.90 : selectedFriesSize === "Regular" ? 32.90 : 41.90;
+          const friesPrice = selectedFriesSize === "Regular" ? 20.00 : 35.00;
           selectedOptionsRecord["Add Fries"] = `${selectedFriesSize} Chips (+R${friesPrice.toFixed(2)})`;
           addedPrice += friesPrice;
         } else {
@@ -936,6 +936,328 @@ Thank you for choosing Krispy King!
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     triggerToast("SVG Digital Pass downloaded!", "success");
+  };
+
+  // Download Branded Staff Training Manual (PDF)
+  const handleDownloadTrainingManual = () => {
+    playBeep(920, "sine", 0.1);
+    const docObj = new jsPDF();
+
+    // Helper: draw Header/Footer on normal pages (pages 2+)
+    const drawPageChrome = (pageNum: number, totalPages: number) => {
+      // Header Banner
+      docObj.setFillColor(186, 12, 47); // Red: #BA0C2F
+      docObj.rect(15, 15, 180, 5, "F");
+      docObj.setFillColor(255, 215, 0); // Gold: #FFD700
+      docObj.rect(15, 20, 180, 1.5, "F");
+
+      docObj.setFont("helvetica", "bold");
+      docObj.setFontSize(9);
+      docObj.setTextColor(17, 24, 39);
+      docObj.text("KRISPY KING OPERATIONAL TRAINING MANUAL", 15, 12);
+
+      docObj.setFont("helvetica", "normal");
+      docObj.setFontSize(8);
+      docObj.setTextColor(107, 114, 128);
+      docObj.text("SESSION 1: LAUNCH & QUEUE-BUSTING FLOWS", 195, 12, { align: "right" });
+
+      // Footer
+      docObj.setDrawColor(229, 231, 235);
+      docObj.setLineWidth(0.5);
+      docObj.line(15, 280, 195, 280);
+
+      docObj.setFontSize(8);
+      docObj.setTextColor(107, 114, 128);
+      docObj.text("KRISPY KING (PTY) LTD - CONFIDENTIAL STAFF DOCUMENT", 15, 286);
+      docObj.text(`Page ${pageNum} of ${totalPages}`, 195, 286, { align: "right" });
+    };
+
+    const printParagraph = (docRef: any, text: string, x: number, y: number, width: number, lineHeight: number = 5): number => {
+      const splitText = docRef.splitTextToSize(text, width);
+      docRef.text(splitText, x, y);
+      return y + splitText.length * lineHeight;
+    };
+
+    // PAGE 1: TITLE PAGE & BRANDING STAMP
+    // Background frame
+    docObj.setDrawColor(186, 12, 47);
+    docObj.setLineWidth(1.5);
+    docObj.rect(10, 10, 190, 277);
+    docObj.setDrawColor(255, 215, 0);
+    docObj.setLineWidth(1);
+    docObj.rect(12, 12, 186, 273);
+
+    // Header Splash (Red block)
+    docObj.setFillColor(186, 12, 47);
+    docObj.rect(12, 35, 186, 40, "F");
+    
+    // Gold separator line
+    docObj.setFillColor(255, 215, 0);
+    docObj.rect(12, 75, 186, 4, "F");
+
+    // Title text inside splash
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(28);
+    docObj.setTextColor(255, 215, 0);
+    docObj.text("KRISPY KING", 105, 53, { align: "center" });
+    
+    docObj.setFontSize(14);
+    docObj.setTextColor(255, 255, 255);
+    docObj.text("STAFF OPERATIONS & TRAINING MANUAL", 105, 66, { align: "center" });
+
+    // Logo stamp drawing (Gold crown & text)
+    const stampX = 105;
+    const stampY = 135;
+    
+    docObj.setDrawColor(255, 215, 0);
+    docObj.setLineWidth(2);
+    docObj.circle(stampX, stampY, 25, "S");
+    docObj.setLineWidth(0.5);
+    docObj.circle(stampX, stampY, 22, "S");
+    
+    // Inner star points for crown representation
+    docObj.setFillColor(186, 12, 47);
+    docObj.triangle(stampX - 10, stampY + 5, stampX + 10, stampY + 5, stampX, stampY - 8, "F");
+    docObj.triangle(stampX - 10, stampY + 5, stampX - 4, stampY + 5, stampX - 11, stampY - 3, "F");
+    docObj.triangle(stampX + 4, stampY + 5, stampX + 10, stampY + 5, stampX + 11, stampY - 3, "F");
+    
+    // Draw crown circles
+    docObj.setFillColor(255, 215, 0);
+    docObj.circle(stampX, stampY - 9, 1.5, "F");
+    docObj.circle(stampX - 11, stampY - 4, 1.2, "F");
+    docObj.circle(stampX + 11, stampY - 4, 1.2, "F");
+    
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(8);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("OFFICIAL SEAL", stampX, stampY + 12, { align: "center" });
+    docObj.text("EST. 2026", stampX, stampY + 16, { align: "center" });
+
+    // Document Information
+    docObj.setFontSize(16);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("SESSION 1: LIVE QUEUE-BUSTING SYSTEM", 105, 185, { align: "center" });
+
+    docObj.setFontSize(10);
+    docObj.setTextColor(75, 85, 99);
+    docObj.text("Standard Operating Procedures & Customer Satisfaction Protocols", 105, 195, { align: "center" });
+
+    // Metadata details box
+    docObj.setFillColor(243, 244, 246);
+    docObj.rect(35, 215, 140, 45, "F");
+    docObj.setDrawColor(209, 213, 219);
+    docObj.setLineWidth(0.5);
+    docObj.rect(35, 215, 140, 45, "S");
+
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(9);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("SYSTEM STATUS:", 45, 225);
+    docObj.text("LAUNCH VERSION:", 45, 232);
+    docObj.text("DEMO SECURITY PIN:", 45, 239);
+    docObj.text("DATE OF ISSUE:", 45, 246);
+    docObj.text("TARGET AUDIENCE:", 45, 253);
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("ACTIVE / ONLINE", 100, 225);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("v2.1 (RELEASE-READY)", 100, 232);
+    docObj.setFont("monospace", "bold");
+    docObj.text("8034", 100, 239);
+    docObj.setFont("helvetica", "normal");
+    docObj.text("JULY 2026", 100, 246);
+    docObj.text("ALL KITCHEN STAFF & CASHIERS", 100, 253);
+
+    // PAGE 2: OVERVIEW & ARCHITECTURE
+    docObj.addPage();
+    drawPageChrome(2, 4);
+
+    let currY = 35;
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(14);
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("1. SYSTEM OVERVIEW & MISSION", 15, currY);
+    currY += 8;
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setFontSize(10);
+    docObj.setTextColor(55, 65, 81);
+    
+    let textStr = "The Krispy King Remote Ordering System represents our commitment to providing lightning-fast, high-quality, and completely friction-free experiences to all patrons. By scanning our table or counter-top QR placards, customers can instantly browse our menu, customize their grilled chicken choices with accurate pricing, add side chips (with size options), select sauce options, and place orders directly from their phones. This bypasses the traditional queue and gives patrons total control of their dining experience.";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+    currY += 5;
+
+    textStr = "Our team's primary metric of success is speed-to-table. As soon as a pre-order is generated, it immediately populates on all live Staff Terminals via real-time cloud data listeners. Simultaneously, the customer's phone displays a beautifully formatted, offline-ready Digital Pickup Pass containing a unique Pass Code (e.g. KK-B8A29F) and a random 4-digit security PIN.";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+    currY += 12;
+
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(14);
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("2. CORE SYSTEM ARCHITECTURE", 15, currY);
+    currY += 8;
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setFontSize(10);
+    docObj.setTextColor(55, 65, 81);
+    
+    textStr = "The architecture is fully integrated to prevent errors and maximize performance under high-pressure fast-food environments. Key components include:";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+    currY += 6;
+
+    const listItemsPage2 = [
+      "REAL-TIME DATA STREAMS: Built on top of Google Firestore for instant, sub-second synchronicity. There is zero delay between a customer ordering and the kitchen receiving it.",
+      "AUDIO ALERT SYNTHESIZER: On-board Web Audio API synthesizer plays specialized high-priority audio chimes. This eliminates external audio file downloads and works across all kitchen noise.",
+      "MENU AVAILABILITY ENGINE: Toggling an item as 'Sold Out' instantly grays out the option on all customers' displays, preventing order errors and refund issues.",
+      "DIGITAL VECTOR PASS SYSTEM: Custom SVG rendering of pickup receipts ensures clients can download crisp vector layouts, preventing blurry scans at the registers."
+    ];
+
+    listItemsPage2.forEach((bullet) => {
+      docObj.setFont("helvetica", "bold");
+      docObj.text("•", 18, currY);
+      docObj.setFont("helvetica", "normal");
+      currY = printParagraph(docObj, bullet, 23, currY, 172, 5);
+      currY += 3;
+    });
+
+    // PAGE 3: CUSTOMER ORDERING JOURNEY
+    docObj.addPage();
+    drawPageChrome(3, 4);
+
+    currY = 35;
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(14);
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("3. CUSTOMER ORDERING WORKFLOW", 15, currY);
+    currY += 8;
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setFontSize(10);
+    docObj.setTextColor(55, 65, 81);
+    
+    textStr = "The ordering interface is designed around responsive, high-density touch controls. The entire purchase funnel can be completed in under 45 seconds through three distinct touchpoints:";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+    currY += 6;
+
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(11);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("3.1 Core Product Sizing & Pricing Upgrades:", 15, currY);
+    currY += 6;
+
+    // Draw simple table headers
+    docObj.setFillColor(243, 244, 246);
+    docObj.rect(15, currY, 180, 7, "F");
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(9);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("ITEM MODIFIER", 18, currY + 5);
+    docObj.text("OPTION DESCRIPTION", 70, currY + 5);
+    docObj.text("PRICE ADDITION", 160, currY + 5);
+    currY += 7;
+
+    const tableRows = [
+      { name: "Portion Size", desc: "1/4 Portion, 1/2 Portion, 3 Portion Upgrade, etc.", price: "Variable" },
+      { name: "Spice Level Selector", desc: "Lemon & Herb, Mild, Hot, Extra Hot (Heat Gauges)", price: "Free" },
+      { name: "Sauce Addition", desc: "No Sauce, BBQ Sauce, Carolina Reaper Sauce (+R5.00)", price: "R0.00 / +R5.00" },
+      { name: "Add Fries (Regular)", desc: "Fresh crispy seasoned potato fries (Regular size)", price: "+R20.00" },
+      { name: "Add Fries (Large)", desc: "Fresh crispy seasoned potato fries (Large size)", price: "+R35.00" }
+    ];
+
+    tableRows.forEach((row) => {
+      docObj.setFont("helvetica", "bold");
+      docObj.setFontSize(9);
+      docObj.text(row.name, 18, currY + 5);
+      docObj.setFont("helvetica", "normal");
+      docObj.text(row.desc, 70, currY + 5);
+      docObj.setFont("monospace", "bold");
+      docObj.text(row.price, 160, currY + 5);
+      
+      docObj.setDrawColor(229, 231, 235);
+      docObj.setLineWidth(0.5);
+      docObj.line(15, currY + 8, 195, currY + 8);
+      currY += 8;
+    });
+    currY += 5;
+
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(11);
+    docObj.setTextColor(17, 24, 39);
+    docObj.text("3.2 Checkout Submission & Verification Generation:", 15, currY);
+    currY += 6;
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setFontSize(10);
+    docObj.setTextColor(55, 65, 81);
+    textStr = "No complex registration or email confirmation is required. Customers enter their first name/nickname and click Place Order. The system compiles their selection, generates a random 4-digit Pickup PIN, and inserts the record to our Firestore database. The client's browser immediately shows their high-resolution pass with active status indicators (Pending, Verified, Completed).";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+
+    // PAGE 4: STAFF OPERATIONS & OVERRIDES
+    docObj.addPage();
+    drawPageChrome(4, 4);
+
+    currY = 35;
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(14);
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("4. STAFF DASHBOARD OPERATIONS", 15, currY);
+    currY += 8;
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setFontSize(10);
+    docObj.setTextColor(55, 65, 81);
+    textStr = "The Staff Portal is our central system command. Access is secured via the Master Staff PIN: 8034. Operations are divided into four active modules:";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+    currY += 4;
+
+    const staffSectors = [
+      { title: "LIVE ORDERS FEED", desc: "Monitors incoming pending orders. New orders trigger a triple rising tone. Staff can click 'Verify' to mark payments as received at the physical register." },
+      { title: "SECURE PICKUP PIN STEP", desc: "When delivering the order to the customer, staff must verify their digital pass code (e.g. KK-B8A29F) and prompt for their 4-digit pickup PIN. This prevents incorrect food collections." },
+      { title: "MENU AVAILABILITY MANAGER", desc: "Enables instant on/off toggling of any menu item. If an ingredient is exhausted, toggling the item will immediately display a 'Sold Out' status for customers." },
+      { title: "SALES & REVENUE ANALYTICS", desc: "Compiles gross sales figures, averages transaction ticket values, and lists top popular menu items to inform supply planning." }
+    ];
+
+    staffSectors.forEach((sec) => {
+      docObj.setFont("helvetica", "bold");
+      docObj.setFontSize(10);
+      docObj.setTextColor(17, 24, 39);
+      docObj.text(sec.title, 18, currY + 4);
+      docObj.setFont("helvetica", "normal");
+      docObj.setFontSize(9.5);
+      docObj.setTextColor(55, 65, 81);
+      currY = printParagraph(docObj, sec.desc, 18, currY + 9, 177, 4.5);
+      currY += 3;
+    });
+    currY += 5;
+
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(14);
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("5. EMERGENCY CONTACT & OVERRIDES", 15, currY);
+    currY += 8;
+
+    docObj.setFont("helvetica", "normal");
+    docObj.setFontSize(10);
+    docObj.setTextColor(55, 65, 81);
+    textStr = "In case of network latency or database discrepancies, cashiers can execute a manual override of any active customer pass code. If a customer loses their phone or pass, a staff member can lookup the order in the 'Verify Pass' tab by name or code and verify it using the master override code '8034' or by manual checkbox clearance.";
+    currY = printParagraph(docObj, textStr, 15, currY, 180, 5);
+    currY += 12;
+
+    // Branded Stamp at end of Manual
+    docObj.setDrawColor(186, 12, 47);
+    docObj.setLineWidth(1);
+    docObj.line(15, currY, 195, currY);
+    currY += 6;
+
+    docObj.setFont("helvetica", "bold");
+    docObj.setFontSize(11);
+    docObj.setTextColor(186, 12, 47);
+    docObj.text("KRISPY KING EXECUTIVE BOARD", 105, currY, { align: "center" });
+    
+    // Save PDF
+    docObj.save("Krispy_King_Training_Manual.pdf");
+    triggerToast("Branded Staff Manual PDF exported!", "success");
   };
 
   // Get active order status on customer display
@@ -1625,44 +1947,54 @@ Thank you for choosing Krispy King!
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {MENU_ITEMS.filter((item) => {
+              {(() => {
+                const displayedItems = MENU_ITEMS.filter((item) => {
                   const matchCat = item.category === activeCategory;
                   const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
                   return matchCat && matchSearch;
-                }).map((item) => {
-                  const isBreakfastItem = item.category === "Breakfast Menu" || item.isBreakfast;
-                  const available = isItemAvailable(item.id) && (!isBreakfastItem || isBreakfastActive);
-                  return (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      available={available}
-                      onAdd={(item, spice) => handleAddToCart(item, spice)}
-                      onCustomize={(item) => {
-                        playBeep(750, "sine", 0.05);
-                        setSelectedComboItem(item);
-                        // initialize selections
-                        const initOpts: any = {};
-                        if (item.comboOptions) {
-                          item.comboOptions.forEach(opt => {
-                            initOpts[opt.name] = opt.choices[0];
-                          });
-                        }
-                        setComboSelections(initOpts);
-                        setSelectedSpiceLevel(item.spiceLevel || 1);
-                        setSelectedComboSauce("No Sauce");
-                        setSelectedFriesSize("None");
-                      }}
-                      onSelect={(item) => {
-                        playBeep(650, "sine", 0.03);
-                        setSelectedMenuItemForDetails(item);
-                      }}
-                    />
-                  );
-                })}
-              </div>
+                });
+
+                return (
+                  <div className={`grid gap-6 ${
+                    displayedItems.length === 1 
+                      ? "grid-cols-1 max-w-sm mx-auto justify-center justify-items-center w-full" 
+                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  }`}>
+                    {displayedItems.map((item) => {
+                      const isBreakfastItem = item.category === "Breakfast Menu" || item.isBreakfast;
+                      const available = isItemAvailable(item.id) && (!isBreakfastItem || isBreakfastActive);
+                      return (
+                        <MenuItemCard
+                          key={item.id}
+                          item={item}
+                          available={available}
+                          onAdd={(item, spice) => handleAddToCart(item, spice)}
+                          onCustomize={(item) => {
+                            playBeep(750, "sine", 0.05);
+                            setSelectedComboItem(item);
+                            // initialize selections
+                            const initOpts: any = {};
+                            if (item.comboOptions) {
+                              item.comboOptions.forEach(opt => {
+                                initOpts[opt.name] = opt.choices[0];
+                              });
+                            }
+                            setComboSelections(initOpts);
+                            setSelectedSpiceLevel(item.spiceLevel || 1);
+                            setSelectedComboSauce("No Sauce");
+                            setSelectedFriesSize("None");
+                          }}
+                          onSelect={(item) => {
+                            playBeep(650, "sine", 0.03);
+                            setSelectedMenuItemForDetails(item);
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Quick Floating Cart Bar for Mobile bottom */}
@@ -3371,6 +3703,13 @@ Thank you for choosing Krispy King!
                         <span className="px-2.5 py-1 bg-black text-gold text-[10px] font-black uppercase rounded border border-gold">
                           V2.0 LIVE DOC
                         </span>
+                        <button
+                          onClick={handleDownloadTrainingManual}
+                          className="px-3.5 py-1.5 bg-chicken-red hover:bg-red-700 text-white text-[10px] font-black uppercase rounded-lg shadow-md border border-black flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5 text-gold animate-bounce" />
+                          Download Manual (PDF)
+                        </button>
                       </div>
                     </div>
 
@@ -3781,12 +4120,11 @@ Thank you for choosing Krispy King!
                     <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
                       🍟 ADD CRISPY CHIPS / FRIES:
                     </label>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {[
                         { label: "No Fries", value: "None" },
-                        { label: "Small (+R21.90)", value: "Small" },
-                        { label: "Regular (+R32.90)", value: "Regular" },
-                        { label: "Large (+R41.90)", value: "Large" }
+                        { label: "Regular (+R20.00)", value: "Regular" },
+                        { label: "Large (+R35.00)", value: "Large" }
                       ].map((opt, idx) => (
                         <button
                           key={idx}

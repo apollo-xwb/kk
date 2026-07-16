@@ -4,10 +4,10 @@ import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with custom databaseId and enable auto-detect long-polling
-// to prevent connection exhaustion while ensuring compatibility with proxies/webviews
+// Initialize Firestore with custom databaseId and enable forced long-polling
+// to prevent connection issues inside sandboxed iframe environments or proxies
 export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
+  experimentalForceLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
 
 // Enable offline persistence for seamless multi-tab offline support

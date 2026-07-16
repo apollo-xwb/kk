@@ -213,11 +213,11 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     ]
   },
 
-  // --- KING FRIED BURGERS ---
+  // --- BURGERS ---
   {
     id: "kb-burger-main",
     name: "King Fried Burger",
-    category: "King Fried Burgers",
+    category: "Burgers",
     price: 37.90,
     description: "Crispy chicken burger with our signature king patties and golden chips.",
     spiceLevel: 1,
@@ -234,6 +234,30 @@ const RAW_MENU_ITEMS: MenuItem[] = [
           { label: "Double King + Chips (R74.90)", priceModifier: 37.00 },
           { label: "Triple King Burger (R74.90)", priceModifier: 37.00 },
           { label: "Triple King + Chips (R89.90)", priceModifier: 52.00 }
+        ]
+      }
+    ]
+  },
+  {
+    id: "kb-beef-burger",
+    name: "Beef Burger",
+    category: "Burgers",
+    price: 37.90,
+    description: "Flame-grilled juicy beef patty with fresh lettuce, sliced tomato, gherkins, and our secret burger sauce on a toasted sesame seed bun.",
+    spiceLevel: 0,
+    isAvailable: true,
+    imageUrl: "/kkx beef burger.png",
+    isCombo: true,
+    comboOptions: [
+      {
+        name: "Size & Sides",
+        choices: [
+          { label: "Single Beef Burger (R37.90)", priceModifier: 0 },
+          { label: "Single Beef + Chips (R52.90)", priceModifier: 15.00 },
+          { label: "Double Beef Burger (R59.90)", priceModifier: 22.00 },
+          { label: "Double Beef + Chips (R74.90)", priceModifier: 37.00 },
+          { label: "Triple Beef Burger (R74.90)", priceModifier: 37.00 },
+          { label: "Triple Beef + Chips (R89.90)", priceModifier: 52.00 }
         ]
       }
     ]
@@ -1078,6 +1102,11 @@ const RAW_MENU_ITEMS: MenuItem[] = [
 const mapItemImage = (item: MenuItem): string => {
   const cat = item.category.toLowerCase();
   const name = item.name.toLowerCase();
+
+  // If the item has a custom asset image (e.g., our kkx beef burger.png), preserve it!
+  if (item.imageUrl && (item.imageUrl.startsWith("/") || item.imageUrl.includes("kkx"))) {
+    return item.imageUrl;
+  }
 
   // 1. Krispy Fried Chicken Carousel piece counts
   if (cat === "fried chicken" || cat === "krispy fried chicken") {
