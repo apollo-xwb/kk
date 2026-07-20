@@ -42,6 +42,8 @@ import { MenuItemCard } from "./components/MenuItemCard";
 import { ItemDetailsModal } from "./components/ItemDetailsModal";
 import { QRCodeSVG } from "qrcode.react";
 import { LiveQRScanner } from "./components/LiveQRScanner";
+import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
+import { MenuManager } from "./components/MenuManager";
 import { 
   collection, 
   doc, 
@@ -49,7 +51,8 @@ import {
   onSnapshot, 
   query, 
   orderBy, 
-  updateDoc 
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -224,6 +227,7 @@ export default function App() {
 
   // --- Real-Time Firestore Synced Database States ---
   const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(MENU_ITEMS);
   const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
   const [isOffline, setIsOffline] = useState<boolean>(false);
 
@@ -378,6 +382,106 @@ export default function App() {
         handleFirestoreError(error, OperationType.GET, "admin_config/menu_status");
       }
     });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync Menu Items with Firestore
+  useEffect(() => {
+    const q = query(collection(db, "menu_items"));
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        try {
+          for (const item of MENU_ITEMS) {
+            await setDoc(doc(db, "menu_items", item.id), {
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              price: Number(item.price),
+              description: item.description || "",
+              imageUrl: item.imageUrl || "",
+              isCombo: !!item.isCombo,
+              spiceLevel: item.spiceLevel !== undefined ? Number(item.spiceLevel) : 0,
+              isPopular: !!item.isPopular,
+              isAvailable: item.isAvailable !== false,
+              isBreakfast: !!item.isBreakfast,
+              isKiddies: !!item.isKiddies,
+              servingSize: item.servingSize || ""
+            });
+          }
+          triggerToast("Seeded menu items to the cloud database successfully!", "success");
+        } catch (e) {
+          console.error("Error seeding menu items:", e);
+        }
+      } else {
+        const items: MenuItem[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          items.push({
+            id: docSnap.id,
+            name: data.name,
+            category: data.category,
+            price: Number(data.price),
+            description: data.description || "",
+            imageUrl: data.imageUrl || "",
+            isCombo: !!data.isCombo,
+            spiceLevel: data.spiceLevel !== undefined ? Number(data.spiceLevel) : 0,
+            isPopular: !!data.isPopular,
+            isAvailable: data.isAvailable !== false,
+            isBreakfast: !!data.isBreakfast,
+            isKiddies: !!data.isKiddies,
+            servingSize: data.servingSize || "",
+            comboOptions: MENU_ITEMS.find(m => m.id === docSnap.id)?.comboOptions
+          });
+        });
+        setMenuItems(items);
+
+        // Automatically clean up deprecated menu item placeholders from Firestore
+        const deprecatedIds = ["d-330ml", "d-500ml", "d-1l", "d-2l", "d-water-500ml", "d-water-1l"];
+        const foundDeprecated = items.filter(i => deprecatedIds.includes(i.id));
+        if (foundDeprecated.length > 0) {
+          console.log("Cleaning up deprecated placeholder items from Firestore:", foundDeprecated.map(m => m.id));
+          try {
+            for (const item of foundDeprecated) {
+              await deleteDoc(doc(db, "menu_items", item.id));
+            }
+          } catch (e) {
+            console.error("Error cleaning up deprecated menu items:", e);
+          }
+        }
+
+        // Check for any locally defined items in data.ts that are missing from the Firestore database
+        const existingIds = new Set(items.map(i => i.id));
+        const missingItems = MENU_ITEMS.filter(item => !existingIds.has(item.id));
+        if (missingItems.length > 0) {
+          console.log("Auto-seeding missing menu items to Firestore:", missingItems.map(m => m.name));
+          try {
+            for (const item of missingItems) {
+              await setDoc(doc(db, "menu_items", item.id), {
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                price: Number(item.price),
+                description: item.description || "",
+                imageUrl: item.imageUrl || "",
+                isCombo: !!item.isCombo,
+                spiceLevel: item.spiceLevel !== undefined ? Number(item.spiceLevel) : 0,
+                isPopular: !!item.isPopular,
+                isAvailable: item.isAvailable !== false,
+                isBreakfast: !!item.isBreakfast,
+                isKiddies: !!item.isKiddies,
+                servingSize: item.servingSize || ""
+              });
+            }
+            triggerToast(`Synchronized ${missingItems.length} new items to the cloud menu!`, "success");
+          } catch (e) {
+            console.error("Error auto-syncing missing menu items:", e);
+          }
+        }
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, "menu_items");
+    });
+
     return () => unsubscribe();
   }, []);
 
@@ -681,7 +785,7 @@ export default function App() {
 
   // Quick Side Add-on upsell helper
   const addQuickAddOn = (itemId: string) => {
-    const item = MENU_ITEMS.find((m) => m.id === itemId);
+    const item = menuItems.find((m) => m.id === itemId);
     if (item && isItemAvailable(itemId)) {
       handleAddToCart(item);
     }
@@ -2036,7 +2140,7 @@ Thank you for choosing Krispy King!
               )}
 
               {(() => {
-                const displayedItems = MENU_ITEMS.filter((item) => {
+                const displayedItems = menuItems.filter((item) => {
                   const matchCat = item.category === activeCategory;
                   const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -3419,146 +3523,23 @@ Thank you for choosing Krispy King!
 
                 {/* TAB: Menu Status Availability Toggler */}
                 {activeStaffTab === "menu" && (
-                  <div className="bg-white rounded-2xl border p-6 space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-black text-black uppercase tracking-tight">Menu Availability Manager</h3>
-                      <p className="text-xs text-gray-500">Toggle items as "Sold Out" instantly on customers' screens</p>
-                    </div>
-
-                    <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto pr-1">
-                      {MENU_ITEMS.map((item) => {
-                        const available = isItemAvailable(item.id);
-                        return (
-                          <div key={item.id} className="py-3.5 flex items-center justify-between gap-4">
-                            <div>
-                              <span className="block text-xs font-black uppercase text-gray-900 leading-tight">
-                                {item.name}
-                              </span>
-                              <span className="text-[10px] text-gray-400 font-bold uppercase">
-                                {item.category} • R{item.price.toFixed(2)}
-                              </span>
-                            </div>
-
-                            <button
-                              onClick={() => toggleItemAvailability(item.id, available)}
-                              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition shadow-sm border ${
-                                available 
-                                  ? "bg-green-100 text-green-800 border-green-300 hover:bg-green-200" 
-                                  : "bg-red-100 text-chicken-red border-red-300 hover:bg-red-200"
-                              }`}
-                            >
-                              {available ? "Available ✅" : "Sold Out ❌"}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <MenuManager
+                    menuItems={menuItems}
+                    menuAvailability={menuAvailability}
+                    toggleItemAvailability={toggleItemAvailability}
+                    triggerToast={triggerToast}
+                    playBeep={playBeep}
+                  />
                 )}
 
                 {/* TAB: Sales Summary Metrics */}
                 {activeStaffTab === "sales" && (
-                  <div className="space-y-6">
-                    {/* Metrics grid banner */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
-                        <div>
-                          <span className="block text-[10px] text-gray-400 font-black uppercase">Completed Sales</span>
-                          <span className="block text-xl font-black text-chicken-red">R{staffStats.revenue.toFixed(2)}</span>
-                        </div>
-                        <DollarSign className="w-8 h-8 text-gold shrink-0" />
-                      </div>
-
-                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
-                        <div>
-                          <span className="block text-[10px] text-gray-400 font-black uppercase">Completed Orders</span>
-                          <span className="block text-xl font-black text-black">{staffStats.completedCount}</span>
-                        </div>
-                        <CheckCircle className="w-8 h-8 text-success-green shrink-0" />
-                      </div>
-
-                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
-                        <div>
-                          <span className="block text-[10px] text-gray-400 font-black uppercase">Pending / Verified</span>
-                          <span className="block text-xl font-black text-black">
-                            {staffStats.pendingCount + staffStats.verifiedCount}
-                          </span>
-                        </div>
-                        <Clock className="w-8 h-8 text-warning-orange shrink-0 animate-pulse" />
-                      </div>
-
-                      <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between">
-                        <div>
-                          <span className="block text-[10px] text-gray-400 font-black uppercase">Avg Ticket Size</span>
-                          <span className="block text-xl font-black text-black">R{staffStats.avgOrder.toFixed(2)}</span>
-                        </div>
-                        <TrendingUp className="w-8 h-8 text-gray-400 shrink-0" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Top Selling Items Box */}
-                      <div className="bg-white rounded-2xl border p-5 space-y-4">
-                        <h4 className="text-sm font-black uppercase text-black border-b pb-2 tracking-tight">
-                          🏆 TOP SELLING ITEMS (COMPLETED)
-                        </h4>
-                        
-                        {staffStats.topItems.length === 0 ? (
-                          <p className="text-xs text-gray-500 py-6 text-center">
-                            No items archived yet. Mark orders complete to compile stats!
-                          </p>
-                        ) : (
-                          <div className="space-y-3">
-                            {staffStats.topItems.map((item, index) => (
-                              <div key={index} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-xs font-black text-chicken-red">#{index + 1}</span>
-                                  <span className="text-xs font-bold uppercase text-gray-800">{item.name}</span>
-                                </div>
-                                <span className="text-xs font-black bg-gold text-black px-2 py-0.5 rounded">
-                                  {item.qty} sold
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Pure CSS/SVG Category Sales Share visual */}
-                      <div className="bg-white rounded-2xl border p-5 space-y-4">
-                        <h4 className="text-sm font-black uppercase text-black border-b pb-2 tracking-tight">
-                          📊 CATEGORY DISTRIBUTION SHARE
-                        </h4>
-
-                        {Object.keys(staffStats.categoryStats).length === 0 ? (
-                          <p className="text-xs text-gray-500 py-6 text-center">
-                            No category data yet. Mark orders complete to render chart!
-                          </p>
-                        ) : (
-                          <div className="space-y-4">
-                            {(Object.entries(staffStats.categoryStats) as [string, number][]).map(([cat, qty], idx) => {
-                              const totalItems = (Object.values(staffStats.categoryStats) as number[]).reduce((s, q) => s + q, 0);
-                              const pct = totalItems > 0 ? (qty / totalItems) * 100 : 0;
-                              return (
-                                <div key={idx} className="space-y-1">
-                                  <div className="flex justify-between text-xs font-bold uppercase text-gray-700">
-                                    <span>{cat}</span>
-                                    <span>{pct.toFixed(0)}% ({qty})</span>
-                                  </div>
-                                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-chicken-red rounded-full"
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <AnalyticsDashboard
+                    orders={orders}
+                    menuItems={menuItems}
+                    triggerToast={triggerToast}
+                    playBeep={playBeep}
+                  />
                 )}
 
                 {/* TAB: Official Placard QR */}

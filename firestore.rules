@@ -42,10 +42,27 @@ service cloud.firestore {
         && data.timestamp is number;
     }
 
+    // Entity validator for MenuItem
+    function isValidMenuItem(data) {
+      return data.keys().hasAll(['id', 'name', 'category', 'price', 'imageUrl'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && data.category is string && data.category.size() <= 50
+        && data.price is number && data.price >= 0
+        && data.imageUrl is string;
+    }
+
     // Rule: admin_config collection
     match /admin_config/{configId} {
       allow read: if true;
       allow write: if isValidId(configId) && configId == 'menu_status';
+    }
+
+    // Rule: menu_items collection
+    match /menu_items/{itemId} {
+      allow read: if true;
+      allow write: if isValidId(itemId) && itemId == incoming().id && isValidMenuItem(incoming());
+      allow delete: if isValidId(itemId);
     }
 
     // Rule: orders collection

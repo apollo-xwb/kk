@@ -34,9 +34,34 @@
         "timestamp": { "type": "number" }
       },
       "required": ["id", "passCode", "timestamp"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "A menu item in the Krispy King system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 50 },
+        "price": { "type": "number" },
+        "description": { "type": "string", "maxLength": 500 },
+        "imageUrl": { "type": "string" },
+        "isCombo": { "type": "boolean" },
+        "spiceLevel": { "type": "number" },
+        "isPopular": { "type": "boolean" },
+        "isAvailable": { "type": "boolean" },
+        "isBreakfast": { "type": "boolean" },
+        "isKiddies": { "type": "boolean" },
+        "servingSize": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name", "category", "price", "imageUrl"]
     }
   },
   "firestore": {
+    "menu_items/{itemId}": {
+      "schema": "#/entities/MenuItem",
+      "description": "Menu items synchronized with the cloud"
+    },
     "orders/{orderId}": {
       "schema": "#/entities/Order",
       "description": "Order records for customers showing queue number, status, total price, and timestamps"
