@@ -17,11 +17,17 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "Quarter Chicken (R34.90)", priceModifier: 0 },
-          { label: "Half Chicken (R69.90)", priceModifier: 35.00 },
-          { label: "Full Chicken (R124.90)", priceModifier: 90.00 },
-          { label: "2 Full Chicken Family Pack (R189.90)", priceModifier: 155.00 },
-          { label: "3 Full Chicken Family Pack (R249.90)", priceModifier: 215.00 }
+          { label: "Quarter Chicken", priceModifier: 0 },
+          { label: "Half Chicken", priceModifier: 35.00 },
+          { label: "Full Chicken", priceModifier: 90.00 },
+          { label: "2 Full Chicken Family Pack", priceModifier: 155.00 }
+        ]
+      },
+      {
+        name: "Chips / Meal Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 15.00 }
         ]
       }
     ]
@@ -43,9 +49,9 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "1/4 Chicken Paella (R49.90)", priceModifier: 0 },
-          { label: "1/2 Chicken Paella (R89.90)", priceModifier: 40.00 },
-          { label: "Full Chicken Paella (R169.90)", priceModifier: 120.00 }
+          { label: "1/4 Chicken Paella", priceModifier: 0 },
+          { label: "1/2 Chicken Paella", priceModifier: 40.00 },
+          { label: "Full Chicken Paella", priceModifier: 120.00 }
         ]
       }
     ]
@@ -174,9 +180,9 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "1pc Tender (R24.90)", priceModifier: 0 },
-          { label: "2pc Tenders (R44.90)", priceModifier: 20.00 },
-          { label: "3pc Tenders + Chips (R64.90)", priceModifier: 40.00 }
+          { label: "1pc Tender", priceModifier: 0 },
+          { label: "2pc Tenders", priceModifier: 20.00 },
+          { label: "3pc Tenders + Chips", priceModifier: 40.00 }
         ]
       }
     ]
@@ -205,9 +211,9 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "4 Wings (R39.90)", priceModifier: 0 },
-          { label: "6 Wings (R49.90)", priceModifier: 10.00 },
-          { label: "12 Wings (R99.90)", priceModifier: 60.00 }
+          { label: "4 Wings", priceModifier: 0 },
+          { label: "6 Wings", priceModifier: 10.00 },
+          { label: "12 Wings", priceModifier: 60.00 }
         ]
       }
     ]
@@ -219,21 +225,25 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     name: "King Fried Burger",
     category: "Burgers",
     price: 37.90,
-    description: "Crispy chicken burger with our signature king patties and golden chips.",
+    description: "Crispy chicken burger with our signature king patties.",
     spiceLevel: 1,
     isAvailable: true,
     imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chicken-Burger-1.jpg",
     isCombo: true,
     comboOptions: [
       {
-        name: "Size & Sides",
+        name: "Size Option",
         choices: [
-          { label: "Single King Burger (R37.90)", priceModifier: 0 },
-          { label: "Single King + Chips (R52.90)", priceModifier: 15.00 },
-          { label: "Double King Burger (R59.90)", priceModifier: 22.00 },
-          { label: "Double King + Chips (R74.90)", priceModifier: 37.00 },
-          { label: "Triple King Burger (R74.90)", priceModifier: 37.00 },
-          { label: "Triple King + Chips (R89.90)", priceModifier: 52.00 }
+          { label: "Single King Burger", priceModifier: 0 },
+          { label: "Double King Burger", priceModifier: 22.00 },
+          { label: "Triple King Burger", priceModifier: 37.00 }
+        ]
+      },
+      {
+        name: "Chips / Meal Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 15.00 }
         ]
       }
     ]
@@ -250,14 +260,18 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     isCombo: true,
     comboOptions: [
       {
-        name: "Size & Sides",
+        name: "Size Option",
         choices: [
-          { label: "Single Beef Burger (R37.90)", priceModifier: 0 },
-          { label: "Single Beef + Chips (R52.90)", priceModifier: 15.00 },
-          { label: "Double Beef Burger (R59.90)", priceModifier: 22.00 },
-          { label: "Double Beef + Chips (R74.90)", priceModifier: 37.00 },
-          { label: "Triple Beef Burger (R74.90)", priceModifier: 37.00 },
-          { label: "Triple Beef + Chips (R89.90)", priceModifier: 52.00 }
+          { label: "Single Beef Burger", priceModifier: 0 },
+          { label: "Double Beef Burger", priceModifier: 22.00 },
+          { label: "Triple Beef Burger", priceModifier: 37.00 }
+        ]
+      },
+      {
+        name: "Chips / Meal Option",
+        choices: [
+          { label: "Without Chips", priceModifier: 0 },
+          { label: "With Chips", priceModifier: 15.00 }
         ]
       }
     ]
@@ -278,9 +292,9 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "4 Wings (R42.90)", priceModifier: 0 },
-          { label: "6 Wings (R54.90)", priceModifier: 12.00 },
-          { label: "12 Wings (R104.90)", priceModifier: 62.00 }
+          { label: "4 Wings", priceModifier: 0 },
+          { label: "6 Wings", priceModifier: 12.00 },
+          { label: "12 Wings", priceModifier: 62.00 }
         ]
       }
     ]
@@ -308,7 +322,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
         ]
       },
       {
-        name: "Chips Option",
+        name: "Chips / Meal Option",
         choices: [
           { label: "Without Chips", priceModifier: 0 },
           { label: "With Chips", priceModifier: 15.00 }

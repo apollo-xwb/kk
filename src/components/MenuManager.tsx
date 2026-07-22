@@ -165,12 +165,28 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
 
     const basePrice = typeof item.price === "number" ? item.price : parseFloat(item.price as any) || 0;
 
-    const textRep = initialOpts.map(opt => {
-      const choicesStr = opt.choices.map(c => {
-        const directVal = (c.priceModifier && c.priceModifier < basePrice)
-          ? c.priceModifier
-          : (basePrice + (c.priceModifier || 0));
-        return `${c.label} (R${directVal.toFixed(2)})`;
+    // Sanitize choice labels and compute initial rawPrice strings for smooth typing
+    const cleanOpts: ComboOption[] = initialOpts.map(opt => ({
+      ...opt,
+      choices: opt.choices.map((c: any) => {
+        const cleanLabel = (c.label || "").replace(/\s*\(\s*\+?\s*R?\s*[0-9.]+\s*\)\s*$/gi, "").trim();
+        const priceMod = typeof c.priceModifier === "number" ? c.priceModifier : parseFloat(c.priceModifier) || 0;
+        const directVal = (priceMod > 0 && priceMod < basePrice)
+          ? priceMod
+          : (basePrice + priceMod);
+        const rawPriceStr = directVal % 1 === 0 ? directVal.toString() : directVal.toFixed(2);
+        return {
+          label: cleanLabel || c.label,
+          priceModifier: priceMod,
+          rawPrice: rawPriceStr
+        };
+      })
+    }));
+
+    const textRep = cleanOpts.map(opt => {
+      const choicesStr = opt.choices.map((c: any) => {
+        const priceVal = parseFloat(c.rawPrice) || 0;
+        return `${c.label} (R${priceVal.toFixed(2)})`;
       }).join(", ");
       return `${opt.name} | ${choicesStr}`;
     }).join("\n");
@@ -180,7 +196,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
       rowId: item.id,
       itemName: item.name,
       itemPrice: basePrice,
-      options: initialOpts,
+      options: cleanOpts,
       activeMode: "visual",
       textInput: textRep
     });
@@ -189,10 +205,11 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
 
   const handleAddGroupToModal = (groupName = "New Variation Group") => {
     if (!variationEditorState) return;
+    const baseP = variationEditorState.itemPrice || 0;
     const updated = [...variationEditorState.options, {
       name: groupName,
       choices: [
-        { label: "Standard / Default Option", priceModifier: 0 }
+        { label: "Standard / Default Option", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any
       ]
     }];
     setVariationEditorState({
@@ -204,10 +221,12 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
   const handleAddChoiceToModalGroup = (groupIndex: number) => {
     if (!variationEditorState) return;
     const updated = [...variationEditorState.options];
+    const baseP = variationEditorState.itemPrice || 0;
     updated[groupIndex].choices.push({
       label: "New Choice",
-      priceModifier: 0
-    });
+      priceModifier: 0,
+      rawPrice: baseP.toFixed(2)
+    } as any);
     setVariationEditorState({
       ...variationEditorState,
       options: updated
@@ -224,12 +243,32 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     });
   };
 
-  const handleUpdateChoiceInModal = (groupIndex: number, choiceIndex: number, field: "label" | "priceModifier", value: any) => {
+  const handleUpdateChoiceInModal = (groupIndex: number, choiceIndex: number, field: "label" | "priceModifier" | "rawPrice", value: any) => {
     if (!variationEditorState) return;
     const updated = [...variationEditorState.options];
     const basePrice = variationEditorState.itemPrice || 0;
 
-    if (field === "priceModifier") {
+    if (field === "rawPrice") {
+      const rawStr = value.toString();
+      const inputPrice = parseFloat(rawStr);
+      let computedModifier = 0;
+
+      if (!isNaN(inputPrice)) {
+        if (inputPrice === 0) {
+          computedModifier = 0;
+        } else if (basePrice > 0 && inputPrice >= basePrice) {
+          computedModifier = inputPrice - basePrice;
+        } else {
+          computedModifier = inputPrice;
+        }
+      }
+
+      updated[groupIndex].choices[choiceIndex] = {
+        ...updated[groupIndex].choices[choiceIndex],
+        rawPrice: rawStr,
+        priceModifier: Math.max(0, computedModifier)
+      } as any;
+    } else if (field === "priceModifier") {
       const inputPrice = parseFloat(value) || 0;
       let computedModifier = 0;
       if (inputPrice === 0) {
@@ -240,10 +279,15 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         computedModifier = inputPrice;
       }
 
+      const directVal = (computedModifier > 0 && computedModifier < basePrice)
+        ? computedModifier
+        : (basePrice + computedModifier);
+
       updated[groupIndex].choices[choiceIndex] = {
         ...updated[groupIndex].choices[choiceIndex],
-        priceModifier: Math.max(0, computedModifier)
-      };
+        priceModifier: Math.max(0, computedModifier),
+        rawPrice: directVal % 1 === 0 ? directVal.toString() : directVal.toFixed(2)
+      } as any;
     } else {
       updated[groupIndex].choices[choiceIndex] = {
         ...updated[groupIndex].choices[choiceIndex],
@@ -279,43 +323,43 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
 
   const applyVariationPresetToModal = (presetType: "portion" | "sauce" | "chips" | "drinks") => {
     if (!variationEditorState) return;
+    const baseP = variationEditorState.itemPrice || 0;
     let newGroup: ComboOption;
     if (presetType === "portion") {
       newGroup = {
         name: "Portion Size",
         choices: [
-          { label: "Quarter Chicken (250g)", priceModifier: 0 },
-          { label: "Half Chicken (500g)", priceModifier: 35.00 },
-          { label: "Full Chicken (1kg)", priceModifier: 90.00 }
+          { label: "Quarter Chicken (250g)", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Half Chicken (500g)", priceModifier: 35.00, rawPrice: (baseP + 35).toFixed(2) } as any,
+          { label: "Full Chicken (1kg)", priceModifier: 90.00, rawPrice: (baseP + 90).toFixed(2) } as any
         ]
       };
     } else if (presetType === "sauce") {
       newGroup = {
         name: "Sauce Basting",
         choices: [
-          { label: "Lemon & Herb", priceModifier: 0 },
-          { label: "Mild Peri-Peri", priceModifier: 0 },
-          { label: "Hot Peri-Peri", priceModifier: 0 },
-          { label: "Karolina Reaper (Extra Hot)", priceModifier: 5.00 }
+          { label: "Lemon & Herb", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Mild Peri-Peri", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Hot Peri-Peri", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Karolina Reaper (Extra Hot)", priceModifier: 5.00, rawPrice: "5.00" } as any
         ]
       };
     } else if (presetType === "chips") {
       newGroup = {
-        name: "Side Option",
+        name: "Chips / Meal Option",
         choices: [
-          { label: "Without Chips", priceModifier: 0 },
-          { label: "With Regular Seasoned Chips", priceModifier: 19.90 },
-          { label: "With Large Seasoned Chips", priceModifier: 34.90 }
+          { label: "Without Chips", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "With Chips", priceModifier: 15.00, rawPrice: (baseP + 15).toFixed(2) } as any
         ]
       };
     } else {
       newGroup = {
         name: "Drink Choice",
         choices: [
-          { label: "Coca Cola (330ml Can)", priceModifier: 0 },
-          { label: "Fanta Orange (330ml Can)", priceModifier: 0 },
-          { label: "Sprite (330ml Can)", priceModifier: 0 },
-          { label: "Still Water (500ml)", priceModifier: 0 }
+          { label: "Coca Cola (330ml Can)", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Fanta Orange (330ml Can)", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Sprite (330ml Can)", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Still Water (500ml)", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any
         ]
       };
     }
@@ -348,7 +392,8 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         const choices: ComboChoice[] = choicesList.map(item => {
           const match = item.match(/^(.*?)(?:\(\s*(\+)?\s*R?\s*([0-9.]+)\s*\))?$/i);
           if (match) {
-            const label = match[1].trim();
+            const rawLabel = match[1].trim();
+            const cleanLabel = rawLabel.replace(/\s*\(\s*\+?\s*R?\s*[0-9.]+\s*\)\s*$/gi, "").trim();
             const hasPlus = !!match[2];
             const parsedNum = match[3] ? parseFloat(match[3]) || 0 : 0;
             let priceModifier = 0;
@@ -361,9 +406,9 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
               priceModifier = parsedNum;
             }
 
-            return { label, priceModifier: Math.max(0, priceModifier) };
+            return { label: cleanLabel || rawLabel, priceModifier: Math.max(0, priceModifier) };
           }
-          return { label: item, priceModifier: 0 };
+          return { label: item.replace(/\s*\(\s*\+?\s*R?\s*[0-9.]+\s*\)\s*$/gi, "").trim(), priceModifier: 0 };
         });
         if (groupName && choices.length > 0) {
           result.push({ name: groupName, choices });
@@ -373,21 +418,49 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     return result;
   };
 
-  const handleSaveVariationModal = () => {
+  const handleSaveVariationModal = async () => {
     if (!variationEditorState) return;
 
-    let finalOptions = variationEditorState.options;
+    let rawOptions = variationEditorState.options;
 
     if (variationEditorState.activeMode === "text") {
-      finalOptions = parseTextInputToOptions(variationEditorState.textInput, variationEditorState.itemPrice);
+      rawOptions = parseTextInputToOptions(variationEditorState.textInput, variationEditorState.itemPrice);
     } else if (variationEditorState.activeMode === "json") {
       try {
-        finalOptions = JSON.parse(variationEditorState.textInput);
+        rawOptions = JSON.parse(variationEditorState.textInput);
       } catch (e) {
         triggerToast("Invalid JSON syntax. Please verify array structure.", "error");
         return;
       }
     }
+
+    // Clean up temporary fields and ensure pristine choice labels and non-negative modifiers
+    const finalOptions: ComboOption[] = rawOptions.map(opt => ({
+      name: opt.name.trim(),
+      choices: opt.choices.map((c: any) => {
+        const cleanLabel = (c.label || "").replace(/\s*\(\s*\+?\s*R?\s*[0-9.]+\s*\)\s*$/gi, "").trim();
+        let modifier = typeof c.priceModifier === "number" ? c.priceModifier : parseFloat(c.priceModifier) || 0;
+        
+        if (c.rawPrice !== undefined) {
+          const inputPrice = parseFloat(c.rawPrice);
+          const baseP = variationEditorState.itemPrice || 0;
+          if (!isNaN(inputPrice)) {
+            if (inputPrice === 0) {
+              modifier = 0;
+            } else if (baseP > 0 && inputPrice >= baseP) {
+              modifier = inputPrice - baseP;
+            } else {
+              modifier = inputPrice;
+            }
+          }
+        }
+
+        return {
+          label: cleanLabel || c.label.trim(),
+          priceModifier: Math.max(0, modifier)
+        };
+      })
+    }));
 
     if (variationEditorState.rowIndex === -1) {
       setFormComboOptions(finalOptions.length > 0 ? finalOptions : undefined);
@@ -399,8 +472,23 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         "comboOptions", 
         finalOptions.length > 0 ? finalOptions : undefined
       );
+
+      // Instantly sync to Firestore
+      const targetId = variationEditorState.rowId;
+      const targetItem = menuItems.find(m => m.id === targetId);
+      if (targetItem) {
+        try {
+          await setDoc(doc(db, "menu_items", targetId), {
+            ...targetItem,
+            comboOptions: finalOptions
+          });
+          triggerToast(`Variations saved and synchronized to cloud for "${variationEditorState.itemName}"!`, "success");
+        } catch (err) {
+          console.error("Error saving variations to Firestore:", err);
+        }
+      }
+
       playBeep(1100, "sine", 0.08);
-      triggerToast(`Variations applied to "${variationEditorState.itemName}" in grid!`, "success");
     } else {
       handleGridCellChange(
         variationEditorState.rowIndex, 
@@ -699,11 +787,16 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     try {
       let writeCount = 0;
       for (const row of modifiedRows) {
-        if (isNaN(row.price) || row.price < 0) {
+        const numPrice = typeof row.price === "number" ? row.price : parseFloat(row.price);
+        if (isNaN(numPrice) || numPrice < 0) {
           triggerToast(`Invalid price for item "${row.name}". Must be positive.`, "error");
           return;
         }
-        await setDoc(doc(db, "menu_items", row.id), row);
+        const rowToSave = {
+          ...row,
+          price: numPrice
+        };
+        await setDoc(doc(db, "menu_items", rowToSave.id), rowToSave);
         writeCount++;
       }
       playBeep(1200, "sine", 0.15);
@@ -1450,10 +1543,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                             </td>
                             <td className="p-2">
                               <input
-                                type="number"
-                                step="0.01"
+                                type="text"
+                                inputMode="decimal"
                                 value={row.price}
-                                onChange={(e) => handleGridCellChange(row.id, "price", parseFloat(e.target.value) || 0)}
+                                onChange={(e) => handleGridCellChange(row.id, "price", e.target.value)}
                                 className="w-full px-2 py-1.5 bg-zinc-900 border border-white/10 rounded text-gold text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-gold"
                               />
                             </td>
@@ -2096,11 +2189,13 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                           <span className="col-span-1 text-center">Action</span>
                         </div>
 
-                        {opt.choices.map((choice, cIdx) => {
+                        {opt.choices.map((choice: any, cIdx) => {
                           const baseP = variationEditorState.itemPrice || 0;
-                          const directVal = (choice.priceModifier > 0 && choice.priceModifier < baseP)
-                            ? choice.priceModifier
-                            : (baseP + choice.priceModifier);
+                          const priceMod = typeof choice.priceModifier === "number" ? choice.priceModifier : parseFloat(choice.priceModifier) || 0;
+                          const directVal = (priceMod > 0 && priceMod < baseP)
+                            ? priceMod
+                            : (baseP + priceMod);
+                          const displayVal = choice.rawPrice !== undefined ? choice.rawPrice : (directVal % 1 === 0 ? directVal.toString() : directVal.toFixed(2));
 
                           return (
                             <div key={cIdx} className="grid grid-cols-12 gap-2 items-center">
@@ -2116,20 +2211,20 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                               <div className="col-span-5 flex items-center gap-1.5">
                                 <span className="text-gold font-mono text-xs font-bold">R</span>
                                 <input
-                                  type="number"
-                                  step="0.01"
-                                  value={directVal}
-                                  onChange={(e) => handleUpdateChoiceInModal(gIdx, cIdx, "priceModifier", e.target.value)}
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={displayVal}
+                                  onChange={(e) => handleUpdateChoiceInModal(gIdx, cIdx, "rawPrice", e.target.value)}
                                   placeholder="0.00"
                                   className="w-28 px-2 py-1 bg-black border border-white/10 rounded text-xs font-mono font-bold text-gold focus:outline-none focus:ring-1 focus:ring-gold"
                                 />
-                                {choice.priceModifier === 0 ? (
+                                {priceMod === 0 ? (
                                   <span className="text-[8.5px] text-gray-400 font-bold bg-white/5 px-1.5 py-0.5 rounded border border-white/10 shrink-0">
                                     Base
                                   </span>
-                                ) : choice.priceModifier >= baseP ? (
+                                ) : priceMod >= baseP ? (
                                   <span className="text-[8.5px] text-gold font-mono font-bold bg-gold/10 px-1.5 py-0.5 rounded border border-gold/20 shrink-0">
-                                    +R{choice.priceModifier.toFixed(2)}
+                                    +R{priceMod.toFixed(2)}
                                   </span>
                                 ) : (
                                   <span className="text-[8.5px] text-emerald-400 font-mono font-bold bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">

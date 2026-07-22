@@ -420,6 +420,29 @@ export default function App() {
         const items: MenuItem[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
+          const rawOpts = data.comboOptions !== undefined ? data.comboOptions : (MENU_ITEMS.find(m => m.id === docSnap.id)?.comboOptions || []);
+          let finalOpts = [...rawOpts];
+          const catLower = (data.category || "").toLowerCase();
+          const nameLower = (data.name || "").toLowerCase();
+          if (catLower.includes("grilled") || catLower.includes("burger") || nameLower.includes("grilled") || nameLower.includes("burger")) {
+            const hasChipsGroup = finalOpts.some(o => o.name.toLowerCase().includes("chip") || o.name.toLowerCase().includes("meal"));
+            if (!hasChipsGroup) {
+              finalOpts.push({
+                name: "Chips / Meal Option",
+                choices: [
+                  { label: "Without Chips", priceModifier: 0 },
+                  { label: "With Chips", priceModifier: 15.00 }
+                ]
+              });
+            }
+          }
+
+          // Strip out deprecated options like 3 Full Chicken Family Pack
+          finalOpts = finalOpts.map(opt => ({
+            ...opt,
+            choices: opt.choices.filter(c => !c.label.toLowerCase().includes("3 full chicken"))
+          })).filter(opt => opt.choices.length > 0);
+
           items.push({
             id: docSnap.id,
             name: data.name,
@@ -434,7 +457,7 @@ export default function App() {
             isBreakfast: !!data.isBreakfast,
             isKiddies: !!data.isKiddies,
             servingSize: data.servingSize || "",
-            comboOptions: data.comboOptions !== undefined ? data.comboOptions : MENU_ITEMS.find(m => m.id === docSnap.id)?.comboOptions
+            comboOptions: finalOpts
           });
         });
         setMenuItems(items);
@@ -722,17 +745,6 @@ export default function App() {
 
       if (selectedComboSauce === "Carolina Reaper Sauce (on the side)") {
         addedPrice += 5.00;
-      }
-
-      // Add Fries option for Grilled Chicken
-      if (selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") {
-        if (selectedFriesSize !== "None") {
-          const friesPrice = selectedFriesSize === "Regular" ? 20.00 : 35.00;
-          selectedOptionsRecord["Add Fries"] = `${selectedFriesSize} Chips (+R${friesPrice.toFixed(2)})`;
-          addedPrice += friesPrice;
-        } else {
-          selectedOptionsRecord["Add Fries"] = "No Fries";
-        }
       }
     }
 
@@ -4418,10 +4430,11 @@ Thank you for choosing Krispy King!
                     </label>
                     <div className="space-y-1.5">
                       {opt.choices.map((choice) => {
-                        const isSelected = comboSelections[opt.name]?.label === choice.label;
+                        const cleanLabel = choice.label.replace(/\s*\(\s*\+?\s*R?\s*[0-9.]+\s*\)\s*$/gi, "").trim();
+                        const selectedLabel = comboSelections[opt.name]?.label ? comboSelections[opt.name].label.replace(/\s*\(\s*\+?\s*R?\s*[0-9.]+\s*\)\s*$/gi, "").trim() : "";
+                        const isSelected = selectedLabel === cleanLabel || comboSelections[opt.name]?.label === choice.label;
                         const baseP = selectedComboItem.price || 0;
                         const totalVersionPrice = baseP + (choice.priceModifier || 0);
-                        const cleanLabel = choice.label.replace(/\s*\(\s*R?[0-9.]+\s*\)/gi, "").trim();
 
                         return (
                           <button
@@ -4454,38 +4467,6 @@ Thank you for choosing Krispy King!
                     </div>
                   </div>
                 ))}
-
-                {/* Add Fries option for Grilled Chicken */}
-                {(selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") && (
-                  <div className="space-y-2 bg-amber-50/50 border border-gold/30 p-4 rounded-xl">
-                    <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
-                      ADD CRISPY CHIPS / FRIES:
-                    </label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { label: "No Fries", value: "None" },
-                        { label: "Regular (+R20.00)", value: "Regular" },
-                        { label: "Large (+R35.00)", value: "Large" }
-                      ].map((opt, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            playBeep(600 + idx * 50, "sine", 0.04);
-                            setSelectedFriesSize(opt.value as any);
-                          }}
-                          className={`py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider text-center border-2 border-black transition ${
-                            selectedFriesSize === opt.value
-                              ? "bg-amber-500 text-white"
-                              : "bg-white text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Action Button */}
