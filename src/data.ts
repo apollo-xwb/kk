@@ -6,7 +6,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     id: "g-chicken-main",
     name: "Flame-Grilled Chicken",
     category: "Grilled Chicken",
-    price: 42.90,
+    price: 34.90,
     description: "Signature flame-grilled chicken basted in your choice of legendary sauce.",
     spiceLevel: 2,
     isPopular: true,
@@ -17,11 +17,11 @@ const RAW_MENU_ITEMS: MenuItem[] = [
       {
         name: "Portion Size",
         choices: [
-          { label: "Quarter Chicken (R42.90)", priceModifier: 0 },
-          { label: "Half Chicken (R69.90)", priceModifier: 27.00 },
-          { label: "Full Chicken (R99.90)", priceModifier: 57.00 },
-          { label: "2 Full Chicken Family Pack (R189.90)", priceModifier: 147.00 },
-          { label: "3 Full Chicken Family Pack (R249.90)", priceModifier: 207.00 }
+          { label: "Quarter Chicken (R34.90)", priceModifier: 0 },
+          { label: "Half Chicken (R69.90)", priceModifier: 35.00 },
+          { label: "Full Chicken (R124.90)", priceModifier: 90.00 },
+          { label: "2 Full Chicken Family Pack (R189.90)", priceModifier: 155.00 },
+          { label: "3 Full Chicken Family Pack (R249.90)", priceModifier: 215.00 }
         ]
       }
     ]
@@ -740,7 +740,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     id: "s-chips-regular",
     name: "Chips (Regular)",
     category: "Sides & Extras",
-    price: 32.90,
+    price: 19.90,
     description: "A standard portion of our famous crispy spiced potato chips.",
     spiceLevel: 0,
     isAvailable: true,
@@ -750,7 +750,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     id: "s-chips-large",
     name: "Chips (Large)",
     category: "Sides & Extras",
-    price: 41.90,
+    price: 34.90,
     description: "A large shared box of crispy golden seasoned chips.",
     spiceLevel: 0,
     isPopular: true,
