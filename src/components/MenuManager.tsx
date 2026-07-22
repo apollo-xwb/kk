@@ -820,19 +820,73 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
       triggerToast("Please select a valid image file", "error");
       return;
     }
-    // Limit file size to 800KB to prevent Firestore document storage limits (1MB maximum per document)
-    if (file.size > 800 * 1024) {
-      triggerToast("Image file is too large! Please upload an image under 800KB.", "error");
+    // Allow generous file size limit up to 20MB
+    if (file.size > 20 * 1024 * 1024) {
+      triggerToast("Image file is too large! Please upload an image under 20MB.", "error");
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      if (event.target?.result) {
-        setFormImageUrl(event.target.result as string);
+      const rawUrl = event.target?.result as string;
+      if (!rawUrl) return;
+
+      // If SVG, load directly without canvas compression
+      if (file.type === "image/svg+xml") {
+        setFormImageUrl(rawUrl);
+        playBeep(900, "sine", 0.08);
+        triggerToast("Custom SVG image loaded successfully!", "success");
+        return;
+      }
+
+      // Automatically compress and downscale high-res images to fit optimal web/Firestore size (~100-250KB)
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const MAX_DIM = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_DIM) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            }
+          } else {
+            if (height > MAX_DIM) {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+            setFormImageUrl(compressedDataUrl);
+            playBeep(900, "sine", 0.08);
+            triggerToast("Image uploaded and optimized for web preview!", "success");
+          } else {
+            setFormImageUrl(rawUrl);
+            playBeep(900, "sine", 0.08);
+            triggerToast("Custom image loaded successfully!", "success");
+          }
+        } catch {
+          setFormImageUrl(rawUrl);
+          playBeep(900, "sine", 0.08);
+          triggerToast("Custom image loaded successfully!", "success");
+        }
+      };
+      img.onerror = () => {
+        setFormImageUrl(rawUrl);
         playBeep(900, "sine", 0.08);
         triggerToast("Custom image loaded successfully!", "success");
-      }
+      };
+      img.src = rawUrl;
     };
     reader.onerror = () => {
       triggerToast("Failed to read image file", "error");
@@ -1222,7 +1276,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                       accept="image/*"
                       className="hidden"
                     />
-                    <span className="block text-[8px] text-gray-500 text-center mt-1">Accepts JPG, PNG, WEBP (Max 800KB)</span>
+                    <span className="block text-[8px] text-gray-500 text-center mt-1">Accepts JPG, PNG, WEBP (Auto-compressed, up to 20MB)</span>
                   </div>
                 </div>
 

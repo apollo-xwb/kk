@@ -46,6 +46,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { LiveQRScanner } from "./components/LiveQRScanner";
 import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
 import { MenuManager } from "./components/MenuManager";
+import { NotFoundScreen } from "./components/NotFoundScreen";
 import { 
   collection, 
   doc, 
@@ -4224,6 +4225,17 @@ Thank you for choosing Krispy King!
               </div>
             )}
           </div>
+        )}
+
+        {/* ==============================================
+             ROUTE: 404 NOT FOUND (CATCH-ALL)
+             ============================================== */}
+        {!["/", "/passes", "/cart", "/checkout", "/staff", "/staff/dashboard"].includes(path) && (
+          <NotFoundScreen
+            currentPath={path}
+            onNavigate={navigate}
+            playBeep={playBeep}
+          />
         )}
       </main>
 
