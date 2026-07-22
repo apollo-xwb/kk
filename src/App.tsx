@@ -405,7 +405,8 @@ export default function App() {
               isAvailable: item.isAvailable !== false,
               isBreakfast: !!item.isBreakfast,
               isKiddies: !!item.isKiddies,
-              servingSize: item.servingSize || ""
+              servingSize: item.servingSize || "",
+              comboOptions: item.comboOptions || []
             });
           }
           triggerToast("Seeded menu items to the cloud database successfully!", "success");
@@ -430,7 +431,7 @@ export default function App() {
             isBreakfast: !!data.isBreakfast,
             isKiddies: !!data.isKiddies,
             servingSize: data.servingSize || "",
-            comboOptions: MENU_ITEMS.find(m => m.id === docSnap.id)?.comboOptions
+            comboOptions: data.comboOptions !== undefined ? data.comboOptions : MENU_ITEMS.find(m => m.id === docSnap.id)?.comboOptions
           });
         });
         setMenuItems(items);
@@ -469,7 +470,8 @@ export default function App() {
                 isAvailable: item.isAvailable !== false,
                 isBreakfast: !!item.isBreakfast,
                 isKiddies: !!item.isKiddies,
-                servingSize: item.servingSize || ""
+                servingSize: item.servingSize || "",
+                comboOptions: item.comboOptions || []
               });
             }
             triggerToast(`Synchronized ${missingItems.length} new items to the cloud menu!`, "success");
@@ -823,6 +825,35 @@ export default function App() {
       return isFullChicken || isMegaGrilled || isGrilledMeal;
     });
   }, [cart]);
+
+  // Dynamic live pricing for deals and upsells
+  const wholeChickenPromoPrice = useMemo(() => {
+    const promoItem = menuItems.find(m => m.id === "promo-whole-chicken");
+    if (promoItem && typeof promoItem.price === "number") {
+      return promoItem.price;
+    }
+    const mainChicken = menuItems.find(m => m.id === "g-chicken-main");
+    if (mainChicken && mainChicken.comboOptions) {
+      for (const group of mainChicken.comboOptions) {
+        for (const choice of group.choices) {
+          if (choice.label.toLowerCase().includes("full chicken")) {
+            return mainChicken.price + (choice.priceModifier || 0);
+          }
+        }
+      }
+    }
+    return mainChicken ? mainChicken.price : 99.90;
+  }, [menuItems]);
+
+  const regChipsPrice = useMemo(() => {
+    const item = menuItems.find(m => m.id === "s-chips-regular");
+    return item ? item.price : 32.90;
+  }, [menuItems]);
+
+  const lrgChipsPrice = useMemo(() => {
+    const item = menuItems.find(m => m.id === "s-chips-large");
+    return item ? item.price : 41.90;
+  }, [menuItems]);
 
   // Checkout submission state
   const [customerName, setCustomerName] = useState<string>("");
@@ -1957,10 +1988,10 @@ Thank you for choosing Krispy King!
                             LIMITED TIME PROMO
                           </span>
                           <h3 className="text-sm font-black uppercase tracking-tight text-black flex items-center justify-center md:justify-start gap-1.5 mt-1">
-                            Add a Whole Flame-Grilled Chicken for <span className="text-chicken-red font-extrabold text-base">R99.90</span>!
+                            Add a Whole Flame-Grilled Chicken for <span className="text-chicken-red font-extrabold text-base">R{wholeChickenPromoPrice.toFixed(2)}</span>!
                           </h3>
                           <p className="text-[11px] text-gray-700 font-semibold max-w-xl leading-relaxed">
-                            Make any meal a feast! With any grilled meal ordered, you can add <span className="underline decoration-gold font-bold">one full flame-grilled chicken</span> basted in your choice of sizzling sauce for only <span className="text-chicken-red font-bold">R99.90</span>.
+                            Make any meal a feast! With any grilled meal ordered, you can add <span className="underline decoration-gold font-bold">one full flame-grilled chicken</span> basted in your choice of sizzling sauce for only <span className="text-chicken-red font-bold">R{wholeChickenPromoPrice.toFixed(2)}</span>.
                           </p>
                         </div>
                       </div>
@@ -1970,7 +2001,7 @@ Thank you for choosing Krispy King!
                             id: "promo-whole-chicken",
                             name: "Whole Flame-Grilled Chicken (Promo)",
                             category: "Grilled Chicken",
-                            price: 99.90,
+                            price: wholeChickenPromoPrice,
                             description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
                             imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
                             spiceLevel: 1
@@ -2014,8 +2045,8 @@ Thank you for choosing Krispy King!
 
                       <div className="grid grid-cols-2 gap-2.5 w-full md:w-auto shrink-0">
                         {[
-                          { id: "s-chips-regular", label: "Regular", price: "R32.90", isPopular: true },
-                          { id: "s-chips-large", label: "Large", price: "R41.90" }
+                          { id: "s-chips-regular", label: "Regular", price: `R${regChipsPrice.toFixed(2)}`, isPopular: true },
+                          { id: "s-chips-large", label: "Large", price: `R${lrgChipsPrice.toFixed(2)}` }
                         ].map((size) => (
                           <button
                             key={size.id}
@@ -2467,7 +2498,7 @@ Thank you for choosing Krispy King!
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🍟</span>
                           <div>
-                            <span className="block text-xs font-black uppercase text-gray-900">Add regular chips for R32.90</span>
+                            <span className="block text-xs font-black uppercase text-gray-900">Add regular chips for R{regChipsPrice.toFixed(2)}</span>
                             <span className="block text-[10px] text-gray-500">Perfect crisp complement to your order!</span>
                           </div>
                         </div>
@@ -2484,14 +2515,14 @@ Thank you for choosing Krispy King!
                   {showWholeChickenUpsell && (
                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl space-y-3 shadow-sm">
                       <span className="text-[10px] font-black uppercase text-white bg-chicken-red px-2 py-0.5 rounded border border-red-600">
-                        🍗 Whole Grilled Chicken Deal - R99.90
+                        🍗 Whole Grilled Chicken Deal - R{wholeChickenPromoPrice.toFixed(2)}
                       </span>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🍗</span>
                           <div>
                             <span className="block text-xs font-black uppercase text-gray-900">Add Whole Flame-Grilled Chicken</span>
-                            <span className="block text-[10px] text-gray-500">Special R99.90 promo for choosing our premium meals!</span>
+                            <span className="block text-[10px] text-gray-500">Special R{wholeChickenPromoPrice.toFixed(2)} promo for choosing our premium meals!</span>
                           </div>
                         </div>
                         <button
@@ -2500,7 +2531,7 @@ Thank you for choosing Krispy King!
                               id: "promo-whole-chicken",
                               name: "Whole Flame-Grilled Chicken (Promo)",
                               category: "Grilled Chicken",
-                              price: 99.90,
+                              price: wholeChickenPromoPrice,
                               description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
                               imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
                               spiceLevel: 1
@@ -4327,6 +4358,10 @@ Thank you for choosing Krispy King!
                     <div className="space-y-1.5">
                       {opt.choices.map((choice) => {
                         const isSelected = comboSelections[opt.name]?.label === choice.label;
+                        const baseP = selectedComboItem.price || 0;
+                        const totalVersionPrice = baseP + (choice.priceModifier || 0);
+                        const cleanLabel = choice.label.replace(/\s*\(\s*R?[0-9.]+\s*\)/gi, "").trim();
+
                         return (
                           <button
                             key={choice.label}
@@ -4344,12 +4379,14 @@ Thank you for choosing Krispy King!
                                 : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                             }`}
                           >
-                            <span>{choice.label}</span>
-                            {choice.priceModifier > 0 && (
-                              <span className="text-chicken-red font-black">
-                                +R{choice.priceModifier.toFixed(2)}
-                              </span>
-                            )}
+                            <span>{cleanLabel}</span>
+                            <span className="text-chicken-red font-black">
+                              {opt.name.toLowerCase().includes("portion") || opt.name.toLowerCase().includes("size") || choice.priceModifier === 0
+                                ? `R${totalVersionPrice.toFixed(2)}`
+                                : choice.priceModifier > 0
+                                ? `+R${choice.priceModifier.toFixed(2)} (R${totalVersionPrice.toFixed(2)})`
+                                : `R${totalVersionPrice.toFixed(2)}`}
+                            </span>
                           </button>
                         );
                       })}

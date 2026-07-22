@@ -81,6 +81,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
   const [formServingSize, setFormServingSize] = useState("");
   const [formIsKiddies, setFormIsKiddies] = useState(false);
   const [formIsBreakfast, setFormIsBreakfast] = useState(false);
+  const [formComboOptions, setFormComboOptions] = useState<ComboOption[] | undefined>(undefined);
 
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
 
@@ -346,14 +347,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
       }
     }
 
-    handleGridCellChange(
-      variationEditorState.rowIndex, 
-      "comboOptions", 
-      finalOptions.length > 0 ? finalOptions : undefined
-    );
-
-    playBeep(1100, "sine", 0.08);
-    triggerToast(`Variations applied to "${variationEditorState.itemName}" in grid!`, "success");
+    if (variationEditorState.rowIndex === -1) {
+      setFormComboOptions(finalOptions.length > 0 ? finalOptions : undefined);
+      playBeep(1100, "sine", 0.08);
+      triggerToast(`Variations applied to "${variationEditorState.itemName || "Item"}"! Remember to save item profile.`, "success");
+    } else {
+      handleGridCellChange(
+        variationEditorState.rowIndex, 
+        "comboOptions", 
+        finalOptions.length > 0 ? finalOptions : undefined
+      );
+      playBeep(1100, "sine", 0.08);
+      triggerToast(`Variations applied to "${variationEditorState.itemName}" in grid!`, "success");
+    }
     setVariationEditorState(null);
   };
 
@@ -718,6 +724,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     setFormServingSize("");
     setFormIsKiddies(false);
     setFormIsBreakfast(false);
+    setFormComboOptions(undefined);
     setEditingItemId(null);
     setIsEditing(false);
   };
@@ -746,6 +753,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     setFormServingSize(item.servingSize || "");
     setFormIsKiddies(!!item.isKiddies);
     setFormIsBreakfast(!!item.isBreakfast);
+    setFormComboOptions(item.comboOptions || undefined);
     setEditingItemId(item.id);
     setIsEditing(true);
     playBeep(800, "sine", 0.05);
@@ -780,7 +788,8 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         isAvailable: menuAvailability[sanitizedId] !== false,
         isKiddies: formIsKiddies,
         isBreakfast: formIsBreakfast,
-        servingSize: formServingSize.trim()
+        servingSize: formServingSize.trim(),
+        comboOptions: formComboOptions
       };
 
       await setDoc(doc(db, "menu_items", sanitizedId), updatedItem);
@@ -969,6 +978,37 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                 rows={2}
                 className="w-full px-3 py-2 bg-zinc-900 border border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-gold text-white text-xs"
               />
+            </div>
+
+            {/* Field: Variations & Portion Sizes Trigger */}
+            <div className="md:col-span-3 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 rounded-2xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <span className="block text-xs font-black uppercase text-gold tracking-wide">
+                  ⚡ Portion Sizes & Variations (Direct Pricing)
+                </span>
+                <span className="block text-[11px] text-gray-300 font-medium mt-0.5">
+                  {formComboOptions && formComboOptions.length > 0 
+                    ? `Configured ${formComboOptions.length} variation groups (${formComboOptions.map(g => g.name).join(", ")})` 
+                    : "Configure Quarter/Half/Full chicken portion sizes or custom side add-ons with direct version pricing."}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => openVariationModal(-1, {
+                  id: formId || "new-item",
+                  name: formName || "New Item",
+                  price: parseFloat(formPrice) || 0,
+                  category: formCategory,
+                  comboOptions: formComboOptions,
+                  description: formDescription,
+                  imageUrl: formImageUrl,
+                  spiceLevel: formSpiceLevel,
+                  isAvailable: true
+                })}
+                className="px-4 py-2.5 bg-gold hover:bg-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition border border-black shadow flex items-center gap-1.5 shrink-0"
+              >
+                <span>{formComboOptions && formComboOptions.length > 0 ? "Edit Variations" : "+ Add Variations"}</span>
+              </button>
             </div>
 
             {/* Image Selection Block */}
