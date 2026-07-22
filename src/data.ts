@@ -246,7 +246,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     description: "Flame-grilled juicy beef patty with fresh lettuce, sliced tomato, gherkins, and our secret burger sauce on a toasted sesame seed bun.",
     spiceLevel: 0,
     isAvailable: true,
-    imageUrl: "/kkx beef burger.png",
+    imageUrl: "/kkx-beef-burger.png",
     isCombo: true,
     comboOptions: [
       {
@@ -1404,7 +1404,11 @@ const mapItemImage = (item: MenuItem): string => {
 
   // If the item has a custom asset image (e.g., our kkx beef burger.png), preserve it!
   if (item.imageUrl && (item.imageUrl.startsWith("/") || item.imageUrl.includes("kkx"))) {
-    return item.imageUrl;
+    let url = item.imageUrl;
+    if (url.includes("kkx beef burger")) {
+      url = "/kkx-beef-burger.png";
+    }
+    return url;
   }
 
   // 1. Krispy Fried Chicken Carousel piece counts

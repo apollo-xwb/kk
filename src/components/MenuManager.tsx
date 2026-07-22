@@ -15,7 +15,10 @@ import {
   Upload,
   FileSpreadsheet,
   Download,
-  Sliders
+  Sliders,
+  Maximize2,
+  Minimize2,
+  Search
 } from "lucide-react";
 import { MenuItem, ComboOption, ComboChoice } from "../types";
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
@@ -89,10 +92,48 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
   const [isBulkEditing, setIsBulkEditing] = useState<boolean>(false);
   const [bulkGridRows, setBulkGridRows] = useState<MenuItem[]>([]);
   const [bulkActiveTab, setBulkActiveTab] = useState<"grid" | "io">("grid");
+  const [gridSearchQuery, setGridSearchQuery] = useState<string>("");
+  const [gridCategoryFilter, setGridCategoryFilter] = useState<string>("All");
+  const [isGridFullScreen, setIsGridFullScreen] = useState<boolean>(false);
+
+  // Keyboard shortcut listener to exit fullscreen on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isGridFullScreen) {
+        setIsGridFullScreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isGridFullScreen]);
+
+  // Filtered rows for grid workspace
+  const filteredGridRows = React.useMemo(() => {
+    let rows = bulkGridRows;
+    if (gridCategoryFilter && gridCategoryFilter !== "All") {
+      rows = rows.filter(r => r.category === gridCategoryFilter);
+    }
+    if (gridSearchQuery.trim()) {
+      const q = gridSearchQuery.toLowerCase().trim();
+      rows = rows.filter(r => 
+        r.name.toLowerCase().includes(q) ||
+        r.id.toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q) ||
+        (r.description && r.description.toLowerCase().includes(q)) ||
+        (r.servingSize && r.servingSize.toLowerCase().includes(q)) ||
+        (Array.isArray(r.comboOptions) && r.comboOptions.some(o => 
+          o.name.toLowerCase().includes(q) || 
+          o.choices.some(c => c.label.toLowerCase().includes(q))
+        ))
+      );
+    }
+    return rows;
+  }, [bulkGridRows, gridCategoryFilter, gridSearchQuery]);
 
   // State for visual variation modal editor
   const [variationEditorState, setVariationEditorState] = useState<{
     rowIndex: number;
+    rowId?: string;
     itemName: string;
     itemPrice: number;
     options: ComboOption[];
@@ -136,6 +177,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
 
     setVariationEditorState({
       rowIndex,
+      rowId: item.id,
       itemName: item.name,
       itemPrice: basePrice,
       options: initialOpts,
@@ -351,6 +393,14 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
       setFormComboOptions(finalOptions.length > 0 ? finalOptions : undefined);
       playBeep(1100, "sine", 0.08);
       triggerToast(`Variations applied to "${variationEditorState.itemName || "Item"}"! Remember to save item profile.`, "success");
+    } else if (variationEditorState.rowId) {
+      handleGridCellChange(
+        variationEditorState.rowId, 
+        "comboOptions", 
+        finalOptions.length > 0 ? finalOptions : undefined
+      );
+      playBeep(1100, "sine", 0.08);
+      triggerToast(`Variations applied to "${variationEditorState.itemName}" in grid!`, "success");
     } else {
       handleGridCellChange(
         variationEditorState.rowIndex, 
@@ -501,6 +551,9 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     setIsBulkEditing(true);
     setBulkGridRows(JSON.parse(JSON.stringify(menuItems)));
     setBulkActiveTab("grid");
+    setGridSearchQuery("");
+    setGridCategoryFilter("All");
+    setIsGridFullScreen(false);
     setPastedCSV("");
     setImportPreviewItems([]);
     setImportDiffs([]);
@@ -603,13 +656,18 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     }
   };
 
-  const handleGridCellChange = (idx: number, field: keyof MenuItem, value: any) => {
-    const updatedRows = [...bulkGridRows];
-    updatedRows[idx] = {
-      ...updatedRows[idx],
-      [field]: value
-    };
-    setBulkGridRows(updatedRows);
+  const handleGridCellChange = (target: number | string, field: keyof MenuItem, value: any) => {
+    setBulkGridRows(prev => {
+      if (typeof target === "number") {
+        const updated = [...prev];
+        if (updated[target]) {
+          updated[target] = { ...updated[target], [field]: value };
+        }
+        return updated;
+      } else {
+        return prev.map(row => row.id === target ? { ...row, [field]: value } : row);
+      }
+    });
   };
 
   const handleSaveGridChanges = async () => {
@@ -1185,33 +1243,57 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
 
       {/* BULK EDITING PANEL */}
       {isBulkEditing && (
-        <div className="bg-zinc-900 border border-gold/30 rounded-2xl p-6 space-y-6 animate-fadeIn relative z-10 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className={
+          isGridFullScreen
+            ? "fixed inset-0 z-50 bg-zinc-950/98 p-4 md:p-6 flex flex-col h-screen w-screen overflow-hidden animate-fadeIn backdrop-blur-xl"
+            : "bg-zinc-900 border border-gold/30 rounded-2xl p-6 space-y-6 animate-fadeIn relative z-10 shadow-2xl"
+        }>
+          <div className="flex items-center justify-between border-b border-white/10 pb-4 shrink-0">
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-gold" />
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest leading-none">
-                  ⚡ BULK WORKSPACE & MASS UPDATE
+                <h3 className="text-sm font-black text-white uppercase tracking-widest leading-none flex items-center gap-2">
+                  <span>⚡ BULK WORKSPACE &amp; MASS UPDATE</span>
+                  {isGridFullScreen && (
+                    <span className="bg-chicken-red text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-red-500 uppercase tracking-widest animate-pulse">
+                      Full Screen View
+                    </span>
+                  )}
                 </h3>
                 <span className="text-[9px] text-gray-400 font-bold uppercase mt-1 block">
-                  Shopify & WooCommerce inspired bulk pricing and catalog publisher
+                  Shopify &amp; WooCommerce inspired bulk pricing and catalog publisher
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsBulkEditing(false);
-                playBeep(600, "sine", 0.05);
-              }}
-              className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-white rounded-full transition border border-white/5"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsGridFullScreen(!isGridFullScreen);
+                  playBeep(900, "sine", 0.05);
+                }}
+                className="px-3 py-1.5 bg-zinc-800 hover:bg-gold hover:text-black text-gold text-xs font-black uppercase rounded-xl border border-gold/30 flex items-center gap-1.5 transition"
+                title={isGridFullScreen ? "Exit Full Screen" : "Maximize Grid Full Screen"}
+              >
+                {isGridFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                <span className="hidden sm:inline">{isGridFullScreen ? "Exit Full Screen" : "Full Screen"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkEditing(false);
+                  setIsGridFullScreen(false);
+                  playBeep(600, "sine", 0.05);
+                }}
+                className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-white rounded-full transition border border-white/5"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Tab Selection */}
-          <div className="flex gap-2 border-b border-white/5 pb-3">
+          <div className="flex gap-2 border-b border-white/5 pb-3 shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -1238,168 +1320,268 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                   : "bg-zinc-950 text-gray-400 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              📥 Export & Import CSV
+              📥 Export &amp; Import CSV
             </button>
           </div>
 
           {/* Tab 1 Content: INTERACTIVE GRID */}
           {bulkActiveTab === "grid" && (
-            <div className="space-y-4">
-              <div className="bg-zinc-950/60 p-4 rounded-xl border border-white/5 text-xs text-gray-300">
-                <p>
-                  💡 <strong>Direct Editing:</strong> You can edit any cells below. Changes are saved locally until you hit <strong>Save &amp; Sync Grid to Cloud</strong>.
-                </p>
+            <div className={`space-y-4 ${isGridFullScreen ? "flex-1 flex flex-col min-h-0 overflow-hidden" : ""}`}>
+              {/* Search & Filter Toolbar */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-zinc-950 p-3 rounded-xl border border-white/10 shrink-0">
+                {/* Search Box */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={gridSearchQuery}
+                    onChange={(e) => setGridSearchQuery(e.target.value)}
+                    placeholder="Search grid items by name, ID, category, or variations..."
+                    className="w-full pl-9 pr-8 py-2 bg-zinc-900 border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gold font-medium"
+                  />
+                  {gridSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setGridSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Category:</span>
+                  <select
+                    value={gridCategoryFilter}
+                    onChange={(e) => setGridCategoryFilter(e.target.value)}
+                    className="px-3 py-2 bg-zinc-900 border border-white/10 rounded-xl text-xs font-bold text-gold focus:outline-none focus:ring-1 focus:ring-gold"
+                  >
+                    <option value="All">All Categories ({bulkGridRows.length})</option>
+                    {CATEGORIES.map(cat => {
+                      const count = bulkGridRows.filter(r => r.category === cat).length;
+                      return (
+                        <option key={cat} value={cat}>
+                          {cat} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Count Badge & Fullscreen toggle */}
+                <div className="flex items-center gap-2 shrink-0 justify-between md:justify-end">
+                  <span className="px-2.5 py-1 bg-gold/15 text-gold border border-gold/30 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                    Showing {filteredGridRows.length} of {bulkGridRows.length}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsGridFullScreen(!isGridFullScreen);
+                      playBeep(900, "sine", 0.05);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition border ${
+                      isGridFullScreen
+                        ? "bg-chicken-red text-white border-red-500 shadow"
+                        : "bg-zinc-800 text-gold hover:bg-gold hover:text-black border-gold/30"
+                    }`}
+                  >
+                    {isGridFullScreen ? (
+                      <>
+                        <Minimize2 className="w-3.5 h-3.5" />
+                        <span>Exit Full Screen</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        <span>Full Screen</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Grid Table Wrapper */}
-              <div className="overflow-x-auto border border-white/10 rounded-xl max-h-[450px]">
+              <div className={`overflow-auto border border-white/10 rounded-xl bg-zinc-950/40 ${
+                isGridFullScreen ? "flex-1 min-h-0" : "max-h-[500px]"
+              }`}>
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-950 text-gray-400 uppercase font-black tracking-wider text-[9px] border-b border-white/15">
-                      <th className="p-3 whitespace-nowrap">ID (Locked)</th>
-                      <th className="p-3 whitespace-nowrap">Name</th>
-                      <th className="p-3 whitespace-nowrap w-44">Category</th>
-                      <th className="p-3 whitespace-nowrap w-24">Price (R)</th>
-                      <th className="p-3 whitespace-nowrap w-28">Serving Size</th>
-                      <th className="p-3 whitespace-nowrap w-32">Spice Level</th>
-                      <th className="p-3 whitespace-nowrap">Breakfast</th>
-                      <th className="p-3 whitespace-nowrap">Kiddies</th>
-                      <th className="p-3 whitespace-nowrap">Popular/Deal</th>
-                      <th className="p-3 whitespace-nowrap w-72">Variations &amp; Options</th>
+                  <thead className="sticky top-0 z-20">
+                    <tr className="bg-zinc-950 text-gray-400 uppercase font-black tracking-wider text-[9px] border-b border-white/15 shadow-md">
+                      <th className="p-3 whitespace-nowrap bg-zinc-950">ID (Locked)</th>
+                      <th className="p-3 whitespace-nowrap bg-zinc-950">Name</th>
+                      <th className="p-3 whitespace-nowrap w-44 bg-zinc-950">Category</th>
+                      <th className="p-3 whitespace-nowrap w-24 bg-zinc-950">Price (R)</th>
+                      <th className="p-3 whitespace-nowrap w-28 bg-zinc-950">Serving Size</th>
+                      <th className="p-3 whitespace-nowrap w-32 bg-zinc-950">Spice Level</th>
+                      <th className="p-3 whitespace-nowrap bg-zinc-950 text-center">Breakfast</th>
+                      <th className="p-3 whitespace-nowrap bg-zinc-950 text-center">Kiddies</th>
+                      <th className="p-3 whitespace-nowrap bg-zinc-950 text-center">Popular/Deal</th>
+                      <th className="p-3 whitespace-nowrap w-72 bg-zinc-950">Variations &amp; Options</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {bulkGridRows.map((row, idx) => {
-                      const hasOptions = Array.isArray(row.comboOptions) && row.comboOptions.length > 0;
-                      return (
-                      <tr key={row.id} className="hover:bg-white/[0.02] transition">
-                        <td className="p-2 font-mono font-bold text-gray-500">{row.id}</td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={row.name}
-                            onChange={(e) => handleGridCellChange(idx, "name", e.target.value)}
-                            className="w-full px-2 py-1 bg-zinc-900 border border-white/10 rounded text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-gold"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <select
-                            value={row.category}
-                            onChange={(e) => handleGridCellChange(idx, "category", e.target.value)}
-                            className="w-full px-2 py-1 bg-zinc-900 border border-white/10 rounded text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-gold"
-                          >
-                            {CATEGORIES.map(c => (
-                              <option key={c} value={c}>{c}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={row.price}
-                            onChange={(e) => handleGridCellChange(idx, "price", parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1 bg-zinc-900 border border-white/10 rounded text-gold text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-gold"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={row.servingSize || ""}
-                            onChange={(e) => handleGridCellChange(idx, "servingSize", e.target.value)}
-                            className="w-full px-2 py-1 bg-zinc-900 border border-white/10 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-gold"
-                            placeholder="e.g. 1pc / 330ml"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <select
-                            value={row.spiceLevel !== undefined ? row.spiceLevel : 0}
-                            onChange={(e) => handleGridCellChange(idx, "spiceLevel", parseInt(e.target.value) || 0)}
-                            className="w-full px-2 py-1 bg-zinc-900 border border-white/10 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-gold"
-                          >
-                            <option value="0">None (0)</option>
-                            <option value="1">Mild (1)</option>
-                            <option value="2">Hot (2)</option>
-                            <option value="3">Extra Hot (3)</option>
-                          </select>
-                        </td>
-                        <td className="p-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={!!row.isBreakfast}
-                            onChange={(e) => handleGridCellChange(idx, "isBreakfast", e.target.checked)}
-                            className="rounded bg-black border-white/15 focus:ring-0 text-gold w-4 h-4 cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={!!row.isKiddies}
-                            onChange={(e) => handleGridCellChange(idx, "isKiddies", e.target.checked)}
-                            className="rounded bg-black border-white/15 focus:ring-0 text-gold w-4 h-4 cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={!!row.isPopular}
-                            onChange={(e) => handleGridCellChange(idx, "isPopular", e.target.checked)}
-                            className="rounded bg-black border-white/15 focus:ring-0 text-gold w-4 h-4 cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-2 min-w-[200px]">
-                          <div className="flex items-center justify-between gap-1.5 bg-zinc-900/90 border border-white/10 p-1 rounded-lg">
-                            <div className="flex items-center gap-1 overflow-hidden">
-                              {hasOptions ? (
-                                <>
-                                  <span className="bg-gold/15 text-gold border border-gold/30 font-black px-1.5 py-0.5 rounded text-[8.5px] uppercase shrink-0">
-                                    {(row.comboOptions as ComboOption[]).length} {(row.comboOptions as ComboOption[]).length === 1 ? "Group" : "Groups"}
-                                  </span>
-                                  <span className="text-[10px] text-gray-300 font-medium truncate max-w-[90px]" title={(row.comboOptions as ComboOption[]).map(o => o.name).join(", ")}>
-                                    {(row.comboOptions as ComboOption[]).map(o => o.name).join(", ")}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="text-gray-500 italic text-[10px] px-1">None set</span>
-                              )}
-                            </div>
+                    {filteredGridRows.length > 0 ? (
+                      filteredGridRows.map((row) => {
+                        const hasOptions = Array.isArray(row.comboOptions) && row.comboOptions.length > 0;
+                        return (
+                          <tr key={row.id} className="hover:bg-white/[0.04] transition">
+                            <td className="p-2 font-mono font-bold text-gray-500 whitespace-nowrap">{row.id}</td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={row.name}
+                                onChange={(e) => handleGridCellChange(row.id, "name", e.target.value)}
+                                className="w-full px-2 py-1.5 bg-zinc-900 border border-white/10 rounded text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-gold"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <select
+                                value={row.category}
+                                onChange={(e) => handleGridCellChange(row.id, "category", e.target.value)}
+                                className="w-full px-2 py-1.5 bg-zinc-900 border border-white/10 rounded text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-gold"
+                              >
+                                {CATEGORIES.map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={row.price}
+                                onChange={(e) => handleGridCellChange(row.id, "price", parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 bg-zinc-900 border border-white/10 rounded text-gold text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-gold"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={row.servingSize || ""}
+                                onChange={(e) => handleGridCellChange(row.id, "servingSize", e.target.value)}
+                                className="w-full px-2 py-1.5 bg-zinc-900 border border-white/10 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-gold"
+                                placeholder="e.g. 1pc / 330ml"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <select
+                                value={row.spiceLevel !== undefined ? row.spiceLevel : 0}
+                                onChange={(e) => handleGridCellChange(row.id, "spiceLevel", parseInt(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 bg-zinc-900 border border-white/10 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-gold"
+                              >
+                                <option value="0">None (0)</option>
+                                <option value="1">Mild (1)</option>
+                                <option value="2">Hot (2)</option>
+                                <option value="3">Extra Hot (3)</option>
+                              </select>
+                            </td>
+                            <td className="p-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={!!row.isBreakfast}
+                                onChange={(e) => handleGridCellChange(row.id, "isBreakfast", e.target.checked)}
+                                className="rounded bg-black border-white/15 focus:ring-0 text-gold w-4 h-4 cursor-pointer"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={!!row.isKiddies}
+                                onChange={(e) => handleGridCellChange(row.id, "isKiddies", e.target.checked)}
+                                className="rounded bg-black border-white/15 focus:ring-0 text-gold w-4 h-4 cursor-pointer"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={!!row.isPopular}
+                                onChange={(e) => handleGridCellChange(row.id, "isPopular", e.target.checked)}
+                                className="rounded bg-black border-white/15 focus:ring-0 text-gold w-4 h-4 cursor-pointer"
+                              />
+                            </td>
+                            <td className="p-2 min-w-[200px]">
+                              <div className="flex items-center justify-between gap-1.5 bg-zinc-900/90 border border-white/10 p-1.5 rounded-lg">
+                                <div className="flex items-center gap-1 overflow-hidden">
+                                  {hasOptions ? (
+                                    <>
+                                      <span className="bg-gold/15 text-gold border border-gold/30 font-black px-1.5 py-0.5 rounded text-[8.5px] uppercase shrink-0">
+                                        {(row.comboOptions as ComboOption[]).length} {(row.comboOptions as ComboOption[]).length === 1 ? "Group" : "Groups"}
+                                      </span>
+                                      <span className="text-[10px] text-gray-300 font-medium truncate max-w-[90px]" title={(row.comboOptions as ComboOption[]).map(o => o.name).join(", ")}>
+                                        {(row.comboOptions as ComboOption[]).map(o => o.name).join(", ")}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-gray-500 italic text-[10px] px-1">None set</span>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openVariationModal(-1, row)}
+                                  className="px-2 py-1 bg-zinc-800 hover:bg-gold hover:text-black text-gold rounded font-black text-[9px] uppercase tracking-wider shrink-0 transition flex items-center gap-1 border border-gold/20"
+                                  title="Open visual variations editor"
+                                >
+                                  <Sliders className="w-3 h-3" />
+                                  <span>{hasOptions ? "Edit" : "+ Add"}</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={10} className="p-8 text-center text-gray-400">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Search className="w-8 h-8 text-gray-600" />
+                            <p className="text-sm font-bold text-gray-300">No menu items match your search filter</p>
+                            <p className="text-xs text-gray-500">Try searching for a different term or clear search query.</p>
                             <button
                               type="button"
-                              onClick={() => openVariationModal(idx, row)}
-                              className="px-2 py-1 bg-zinc-800 hover:bg-gold hover:text-black text-gold rounded font-black text-[9px] uppercase tracking-wider shrink-0 transition flex items-center gap-1 border border-gold/20"
-                              title="Open visual variations editor"
+                              onClick={() => {
+                                setGridSearchQuery("");
+                                setGridCategoryFilter("All");
+                              }}
+                              className="mt-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-gold text-xs font-bold rounded-lg border border-gold/30"
                             >
-                              <Sliders className="w-3 h-3" />
-                              <span>{hasOptions ? "Edit" : "+ Add"}</span>
+                              Clear Search &amp; Filters
                             </button>
                           </div>
                         </td>
                       </tr>
-                      );
-                    })}
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {/* Grid actions */}
-              <div className="flex justify-end gap-3 border-t border-white/10 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsBulkEditing(false);
-                    playBeep(600, "sine", 0.05);
-                  }}
-                  className="px-4 py-2.5 bg-zinc-900 border border-white/10 hover:bg-zinc-800 rounded-xl text-xs font-black uppercase"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveGridChanges}
-                  className="px-5 py-2.5 bg-gold hover:bg-yellow-400 text-black rounded-xl text-xs font-black uppercase flex items-center gap-1.5 shadow"
-                >
-                  <Check className="w-4 h-4" /> Save &amp; Sync Grid to Cloud
-                </button>
+              <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-4 shrink-0">
+                <div className="text-[11px] text-gray-400 font-medium hidden sm:block">
+                  💡 Press <kbd className="px-1.5 py-0.5 bg-zinc-800 text-gray-200 border border-white/10 rounded text-[10px] font-mono">Save &amp; Sync Grid</kbd> to persist all row updates to cloud Firestore.
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBulkEditing(false);
+                      setIsGridFullScreen(false);
+                      playBeep(600, "sine", 0.05);
+                    }}
+                    className="px-4 py-2.5 bg-zinc-900 border border-white/10 hover:bg-zinc-800 rounded-xl text-xs font-black uppercase text-gray-300 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveGridChanges}
+                    className="px-5 py-2.5 bg-gold hover:bg-yellow-400 text-black rounded-xl text-xs font-black uppercase flex items-center gap-1.5 shadow"
+                  >
+                    <Check className="w-4 h-4" /> Save &amp; Sync Grid to Cloud
+                  </button>
+                </div>
               </div>
             </div>
           )}
