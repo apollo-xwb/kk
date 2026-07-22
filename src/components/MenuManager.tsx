@@ -888,7 +888,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
   });
 
   return (
-    <div className="space-y-6 text-white bg-zinc-950 p-6 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden">
+    <div className="w-full space-y-6 text-white bg-zinc-950 p-4 sm:p-6 md:p-8 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden">
       {/* Immersive Glass glows */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-gold/5 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -932,7 +932,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         <form onSubmit={handleSaveItem} className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6 animate-fadeIn relative z-10">
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <h3 className="text-sm font-black text-gold uppercase tracking-widest flex items-center gap-1.5">
-              <span>{editingItemId ? "⚡ EDIT ITEM PROFILE" : "🚀 ADD FRESH MENU ITEM"}</span>
+              <span>{editingItemId ? "EDIT ITEM PROFILE" : "ADD FRESH MENU ITEM"}</span>
             </h3>
             <button
               type="button"
@@ -1042,7 +1042,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
             <div className="md:col-span-3 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 rounded-2xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <span className="block text-xs font-black uppercase text-gold tracking-wide">
-                  ⚡ Portion Sizes & Variations (Direct Pricing)
+                  Portion Sizes &amp; Variations (Direct Pricing)
                 </span>
                 <span className="block text-[11px] text-gray-300 font-medium mt-0.5">
                   {formComboOptions && formComboOptions.length > 0 
@@ -1151,7 +1151,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
           {/* Quick Image Curated Palettes */}
           <div className="space-y-1.5 bg-black/40 p-3 rounded-xl border border-white/5">
             <span className="block text-[8px] font-black uppercase text-gray-400">
-              ⚡ Curated HD Image Presets (Click to choose instantly):
+              Curated HD Image Presets (Click to choose instantly):
             </span>
             <div className="flex flex-wrap gap-1.5">
               {FOOD_IMAGE_TEMPLATES.map((img, idx) => {
@@ -1246,7 +1246,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         <div className={
           isGridFullScreen
             ? "fixed inset-0 z-50 bg-zinc-950/98 p-4 md:p-6 flex flex-col h-screen w-screen overflow-hidden animate-fadeIn backdrop-blur-xl"
-            : "bg-zinc-900 border border-gold/30 rounded-2xl p-6 space-y-6 animate-fadeIn relative z-10 shadow-2xl"
+            : "bg-zinc-900 border border-gold/30 rounded-2xl p-4 sm:p-6 space-y-6 animate-fadeIn relative z-10 shadow-2xl w-full max-w-none"
         }>
           <div className="flex items-center justify-between border-b border-white/10 pb-4 shrink-0">
             <div className="flex items-center gap-2">
@@ -1761,7 +1761,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                       onClick={handleConfirmCSVImport}
                       className="px-6 py-3 bg-gold hover:bg-yellow-400 text-black rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition duration-300"
                     >
-                      🔥 CONFIRM &amp; APPLY ALL CHANGES TO DATABASE
+                      CONFIRM &amp; APPLY ALL CHANGES TO DATABASE
                     </button>
                   </div>
                 </div>
@@ -2026,7 +2026,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
               {/* Presets Bar */}
               <div className="bg-zinc-900/80 p-3 rounded-xl border border-white/5 space-y-2">
                 <span className="text-[9px] font-black text-gold uppercase block">
-                  ⚡ 1-Click Fast Presets (Click to Add / Replace):
+                  1-Click Fast Presets (Click to Add / Replace):
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   <button
@@ -2034,14 +2034,14 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                     onClick={() => applyVariationPresetToModal("portion")}
                     className="px-2.5 py-1 bg-black hover:bg-zinc-800 border border-gold/30 text-gold rounded-lg text-[9.5px] font-black uppercase tracking-wider transition flex items-center gap-1"
                   >
-                    🍗 + Portion Sizes
+                    + Portion Sizes
                   </button>
                   <button
                     type="button"
                     onClick={() => applyVariationPresetToModal("chips")}
                     className="px-2.5 py-1 bg-black hover:bg-zinc-800 border border-gold/30 text-gold rounded-lg text-[9.5px] font-black uppercase tracking-wider transition flex items-center gap-1"
                   >
-                    🍟 + Chips / Sides
+                    + Chips / Sides
                   </button>
                   <button
                     type="button"
@@ -2055,7 +2055,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                     onClick={() => applyVariationPresetToModal("drinks")}
                     className="px-2.5 py-1 bg-black hover:bg-zinc-800 border border-gold/30 text-gold rounded-lg text-[9.5px] font-black uppercase tracking-wider transition flex items-center gap-1"
                   >
-                    🥤 + Soft Drinks
+                    + Soft Drinks
                   </button>
                 </div>
               </div>

@@ -37,17 +37,17 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
 
   const getCategoryColor = (cat: string) => {
     const lowercaseCat = cat.toLowerCase();
-    if (lowercaseCat.includes("grilled")) return { bg: "bg-amber-100", text: "text-amber-800", emoji: "🍗" };
+    if (lowercaseCat.includes("grilled")) return { bg: "bg-amber-100", text: "text-amber-800", emoji: "" };
     if (lowercaseCat.includes("fried chicken") || lowercaseCat.includes("tenders") || lowercaseCat.includes("wings")) {
-      return { bg: "bg-red-50", text: "text-red-700", emoji: "🍗" };
+      return { bg: "bg-red-50", text: "text-red-700", emoji: "" };
     }
-    if (lowercaseCat.includes("burger")) return { bg: "bg-yellow-50", text: "text-yellow-800", emoji: "🍔" };
-    if (lowercaseCat.includes("twista")) return { bg: "bg-emerald-50", text: "text-emerald-700", emoji: "🌯" };
-    if (lowercaseCat.includes("beverage") || lowercaseCat.includes("drink")) return { bg: "bg-sky-50", text: "text-sky-700", emoji: "🥤" };
-    if (lowercaseCat.includes("mocktail")) return { bg: "bg-purple-50", text: "text-purple-700", emoji: "🍹" };
-    if (lowercaseCat.includes("breakfast")) return { bg: "bg-amber-50", text: "text-amber-700", emoji: "🍳" };
-    if (lowercaseCat.includes("kiddies")) return { bg: "bg-indigo-50", text: "text-indigo-700", emoji: "👶" };
-    return { bg: "bg-gray-100", text: "text-gray-700", emoji: "🍟" };
+    if (lowercaseCat.includes("burger")) return { bg: "bg-yellow-50", text: "text-yellow-800", emoji: "" };
+    if (lowercaseCat.includes("twista")) return { bg: "bg-emerald-50", text: "text-emerald-700", emoji: "" };
+    if (lowercaseCat.includes("beverage") || lowercaseCat.includes("drink")) return { bg: "bg-sky-50", text: "text-sky-700", emoji: "" };
+    if (lowercaseCat.includes("mocktail")) return { bg: "bg-purple-50", text: "text-purple-700", emoji: "" };
+    if (lowercaseCat.includes("breakfast")) return { bg: "bg-amber-50", text: "text-amber-700", emoji: "" };
+    if (lowercaseCat.includes("kiddies")) return { bg: "bg-indigo-50", text: "text-indigo-700", emoji: "" };
+    return { bg: "bg-gray-100", text: "text-gray-700", emoji: "" };
   };
 
   const catStyle = getCategoryColor(item.category);
@@ -147,7 +147,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                 Select Your Desired Heat Level
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
+                {["Lemon & Herb", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
                   <button
                     key={idx}
                     type="button"
@@ -169,12 +169,12 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
           {available && !item.isCombo && item.category !== "Beverages" && item.category !== "Mocktails" && (
             <div className="space-y-3 bg-amber-50/50 border border-amber-100 p-4 rounded-xl">
               <label className="block text-xs font-black uppercase text-amber-800 tracking-wider flex items-center gap-1 font-semibold">
-                🍯 Select Your Sauce Option (comes on the side)
+                Select Your Sauce Option (comes on the side)
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: "No Sauce", value: "No Sauce" },
-                  { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                  { label: "BBQ", value: "BBQ Sauce (on the side)" },
                   { label: "Reaper 🌶️", value: "Carolina Reaper Sauce (on the side)" }
                 ].map((sauceItem, idx) => (
                   <button

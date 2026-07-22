@@ -39,14 +39,14 @@ interface Expense {
 }
 
 const PRE_EXISTING_EXPENSE_OPTIONS = [
-  { label: "🍗 Chicken Stock", desc: "Fresh Chicken Stock (Grade A)", category: "Ingredients" as const, amount: 4850 },
-  { label: "🛢️ Cooking Oil", desc: "Signature Basting Oils & Spices", category: "Ingredients" as const, amount: 1200 },
-  { label: "🛍️ Paper Bags", desc: "Biodegradable Paper Bags & Boxes", category: "Ingredients" as const, amount: 750 },
-  { label: "🔋 Gas Refill", desc: "48kg LPG Gas Cylinder Refill", category: "Rent & Utilities" as const, amount: 850 },
-  { label: "⚡ utilities Bill", desc: "Municipal Water & Electricity Bill", category: "Rent & Utilities" as const, amount: 2400 },
-  { label: "👥 Shift Wages", desc: "Staff Wages (Weekend Shift)", category: "Wages" as const, amount: 3200 },
-  { label: "📣 Flyer Ad campaign", desc: "Local Flyer Print & Distribution", category: "Marketing" as const, amount: 600 },
-  { label: "🧼 Sanitizers", desc: "Deep Kitchen Sanitizers & Soap", category: "Equipment & Maintenance" as const, amount: 350 }
+  { label: "Chicken Stock", desc: "Fresh Chicken Stock (Grade A)", category: "Ingredients" as const, amount: 4850 },
+  { label: "Cooking Oil", desc: "Signature Basting Oils & Spices", category: "Ingredients" as const, amount: 1200 },
+  { label: "Paper Bags", desc: "Biodegradable Paper Bags & Boxes", category: "Ingredients" as const, amount: 750 },
+  { label: "Gas Refill", desc: "48kg LPG Gas Cylinder Refill", category: "Rent & Utilities" as const, amount: 850 },
+  { label: "Utilities Bill", desc: "Municipal Water & Electricity Bill", category: "Rent & Utilities" as const, amount: 2400 },
+  { label: "Shift Wages", desc: "Staff Wages (Weekend Shift)", category: "Wages" as const, amount: 3200 },
+  { label: "Flyer Ad Campaign", desc: "Local Flyer Print & Distribution", category: "Marketing" as const, amount: 600 },
+  { label: "Sanitizers", desc: "Deep Kitchen Sanitizers & Soap", category: "Equipment & Maintenance" as const, amount: 350 }
 ];
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
@@ -820,7 +820,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <div>
               <span className="block text-[10px] text-gray-400 font-black uppercase">Product Sales ledger</span>
               <h4 className="text-xs font-black text-gold uppercase tracking-wider">
-                🏆 Top Performing Menu Inventory
+                Top Performing Menu Inventory
               </h4>
             </div>
 

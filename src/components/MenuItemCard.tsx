@@ -25,33 +25,33 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({
   const getCategoryColor = (cat: string) => {
     const lowercaseCat = cat.toLowerCase();
     if (lowercaseCat.includes("grilled")) {
-      return { bg: "bg-amber-100", text: "text-amber-800", emoji: "🍗" };
+      return { bg: "bg-amber-100", text: "text-amber-800", emoji: "" };
     }
     if (lowercaseCat.includes("fried chicken") || lowercaseCat.includes("tenders") || lowercaseCat.includes("wings")) {
-      return { bg: "bg-red-50", text: "text-red-700", emoji: "🍗" };
+      return { bg: "bg-red-50", text: "text-red-700", emoji: "" };
     }
     if (lowercaseCat.includes("burger")) {
-      return { bg: "bg-yellow-50", text: "text-yellow-800", emoji: "🍔" };
+      return { bg: "bg-yellow-50", text: "text-yellow-800", emoji: "" };
     }
     if (lowercaseCat.includes("meal") || lowercaseCat.includes("combo") || lowercaseCat.includes("family")) {
-      return { bg: "bg-rose-50", text: "text-rose-700", emoji: "🍱" };
+      return { bg: "bg-rose-50", text: "text-rose-700", emoji: "" };
     }
     if (lowercaseCat.includes("twista")) {
-      return { bg: "bg-emerald-50", text: "text-emerald-700", emoji: "🌯" };
+      return { bg: "bg-emerald-50", text: "text-emerald-700", emoji: "" };
     }
     if (lowercaseCat.includes("beverage") || lowercaseCat.includes("drink")) {
-      return { bg: "bg-sky-50", text: "text-sky-700", emoji: "🥤" };
+      return { bg: "bg-sky-50", text: "text-sky-700", emoji: "" };
     }
     if (lowercaseCat.includes("mocktail")) {
-      return { bg: "bg-purple-50", text: "text-purple-700", emoji: "🍹" };
+      return { bg: "bg-purple-50", text: "text-purple-700", emoji: "" };
     }
     if (lowercaseCat.includes("breakfast")) {
-      return { bg: "bg-amber-50", text: "text-amber-700", emoji: "🍳" };
+      return { bg: "bg-amber-50", text: "text-amber-700", emoji: "" };
     }
     if (lowercaseCat.includes("kiddies")) {
-      return { bg: "bg-indigo-50", text: "text-indigo-700", emoji: "👶" };
+      return { bg: "bg-indigo-50", text: "text-indigo-700", emoji: "" };
     }
-    return { bg: "bg-gray-100", text: "text-gray-700", emoji: "🍟" };
+    return { bg: "bg-gray-100", text: "text-gray-700", emoji: "" };
   };
 
   const catStyle = getCategoryColor(item.category);

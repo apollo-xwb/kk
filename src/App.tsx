@@ -180,11 +180,11 @@ export default function App() {
   useEffect(() => {
     if (!showSplash) return;
     const messages = [
-      "Firing up the grills... 🔥",
-      "Perfecting signature spices... 🍗",
-      "Simmering Karolina Reaper sauce... 🌶️",
-      "Ensuring crispy golden perfection... ✨",
-      "Ready to serve South Africa's finest! 👑"
+      "Firing up the grills...",
+      "Perfecting signature spices...",
+      "Simmering Karolina Reaper sauce...",
+      "Ensuring crispy golden perfection...",
+      "Ready to serve South Africa's finest!"
     ];
     let i = 0;
     const interval = setInterval(() => {
@@ -642,7 +642,7 @@ export default function App() {
   const handleAddToCart = (item: MenuItem, spiceOver?: number, sauceOver?: string) => {
     playBeep(880, "sine", 0.05);
     const resolvedSpice = spiceOver !== undefined ? spiceOver : (item.spiceLevel || 0);
-    const selectedSpiceLabel = resolvedSpice === 1 ? "Mild 🌶️" : resolvedSpice === 2 ? "Hot 🌶️🌶️" : resolvedSpice === 3 ? "Extra Hot 🌶️🌶️🌶️" : "Lemon & Herb 🍋";
+    const selectedSpiceLabel = resolvedSpice === 1 ? "Mild 🌶️" : resolvedSpice === 2 ? "Hot 🌶️🌶️" : resolvedSpice === 3 ? "Extra Hot 🌶️🌶️🌶️" : "Lemon & Herb";
     
     const cartKey: Record<string, string> = {};
     if (resolvedSpice > 0) {
@@ -696,7 +696,7 @@ export default function App() {
     });
 
     if (isIndividualCustomizationEnabled && parsedChickenCount > 1) {
-      const labels = ["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
+      const labels = ["Lemon & Herb", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
       individualSelections.forEach((sel, i) => {
         selectedOptionsRecord[`Chicken #${i+1} Spice`] = labels[sel.spice];
         selectedOptionsRecord[`Chicken #${i+1} Sauce`] = sel.sauce;
@@ -708,7 +708,7 @@ export default function App() {
       // Add spice level option if any (exclude for fried chicken)
       const isFried = selectedComboItem.category.toLowerCase().includes("fried") || selectedComboItem.name.toLowerCase().includes("fried");
       if (selectedComboItem.spiceLevel !== undefined && !isFried) {
-        const labels = ["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
+        const labels = ["Lemon & Herb", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"];
         selectedOptionsRecord["Spice Level"] = labels[selectedSpiceLevel];
       }
 
@@ -826,24 +826,8 @@ export default function App() {
     });
   }, [cart]);
 
-  // Dynamic live pricing for deals and upsells
-  const wholeChickenPromoPrice = useMemo(() => {
-    const promoItem = menuItems.find(m => m.id === "promo-whole-chicken");
-    if (promoItem && typeof promoItem.price === "number") {
-      return promoItem.price;
-    }
-    const mainChicken = menuItems.find(m => m.id === "g-chicken-main");
-    if (mainChicken && mainChicken.comboOptions) {
-      for (const group of mainChicken.comboOptions) {
-        for (const choice of group.choices) {
-          if (choice.label.toLowerCase().includes("full chicken")) {
-            return mainChicken.price + (choice.priceModifier || 0);
-          }
-        }
-      }
-    }
-    return mainChicken ? mainChicken.price : 99.90;
-  }, [menuItems]);
+  // Dynamic live pricing for deals and upsells (Whole Chicken upsell promo is R99)
+  const wholeChickenPromoPrice = 99.00;
 
   const regChipsPrice = useMemo(() => {
     const item = menuItems.find(m => m.id === "s-chips-regular");
@@ -1026,7 +1010,7 @@ export default function App() {
 
     const receiptContent = `
 =========================================
-👑 KRISPY KING OFFICIAL REMOTE RECEIPT 👑
+KRISPY KING OFFICIAL REMOTE RECEIPT
 =========================================
 Order ID:   ${order.id}
 Pass Code:  ${order.passCode}
@@ -1659,14 +1643,14 @@ Thank you for choosing Krispy King!
         {/* Promo Marquee (Edge-to-Edge Announcement Banner) */}
         <div className="bg-chicken-red text-white py-2 px-3 overflow-hidden border-b border-gold/20 relative flex items-center w-full select-none">
           <div className="absolute left-0 top-0 bottom-0 bg-chicken-red px-3.5 z-10 flex items-center border-r border-gold/20 font-black text-gold text-[10px] italic uppercase tracking-wider">
-            DEALS 🔥
+            DEALS
           </div>
           <div className="w-full overflow-hidden pl-20">
             <div className="animate-marquee text-[10px] font-black uppercase tracking-wider">
-              <span>🚀 Try our newly introduced KAROLINA REAPER sauce on Grilled Chicken! Can you handle the heat? 🌶️🌶️🌶️</span>
-              <span>🍗 2 Full Chicken Family Pack for just R189.90! Save massive rands! 🍗</span>
-              <span>🍔 Smashed Burger Beef double deal R69.90 - juicy patties, melted cheese! 🍔</span>
-              <span>🍹 Fresh ice cold mocktails starting at only R39.90! Mojitos, sunrises, lemonades! 🍹</span>
+              <span>Try our newly introduced KAROLINA REAPER sauce on Grilled Chicken! Can you handle the heat? 🌶️🌶️🌶️</span>
+              <span>2 Full Chicken Family Pack for just R189.90! Save massive rands!</span>
+              <span>Smashed Burger Beef double deal R69.90 - juicy patties, melted cheese!</span>
+              <span>Fresh ice cold mocktails starting at only R39.90! Mojitos, sunrises, lemonades!</span>
             </div>
           </div>
         </div>
@@ -1761,7 +1745,7 @@ Thank you for choosing Krispy King!
       </div>
 
       {/* Main Content Body */}
-      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-6 pb-28">
+      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-6 pb-28 transition-all duration-300">
         
         {/* ==============================================
              ROUTE: / (MENU BROWSER & COMBOS) 
@@ -1974,45 +1958,56 @@ Thank you for choosing Krispy King!
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="relative z-10 w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
+                      className="relative z-10 w-full h-full min-h-[200px] md:min-h-[160px] flex items-center"
                     >
-                      <div className="absolute -right-6 -bottom-6 text-9xl opacity-[0.06] pointer-events-none select-none rotate-12">
-                        🍗
+                      {/* Image filling Top, Bottom, and Left edge 100% completely with zero gaps */}
+                      <div className="absolute inset-y-0 left-0 w-32 sm:w-48 md:w-64 lg:w-72 h-full overflow-hidden shrink-0 group z-0">
+                        <img 
+                          src="https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/grilled_chicken.webp" 
+                          onError={(e) => {
+                            e.currentTarget.src = "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg";
+                          }}
+                          alt="Whole Flame-Grilled Chicken" 
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
+                          referrerPolicy="no-referrer"
+                        />
+                        {/* Smooth gradient fade on the right side of the image */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-50/50 to-amber-50 pointer-events-none" />
                       </div>
-                      <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
-                        <div className="bg-chicken-red text-gold p-3.5 rounded-full border-2 border-black text-3xl animate-pulse shadow shrink-0">
-                          🔥
+
+                      <div className="relative z-10 w-full p-4 sm:p-5 pl-36 sm:pl-52 md:pl-68 lg:pl-76 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row w-full md:w-auto">
+                          <div className="space-y-1">
+                            <span className="inline-block px-2 py-0.5 bg-chicken-red text-gold text-[9px] font-black uppercase rounded border border-black shadow-sm tracking-widest leading-none">
+                              LIMITED TIME PROMO
+                            </span>
+                            <h3 className="text-sm font-black uppercase tracking-tight text-black flex items-center justify-center md:justify-start gap-1.5 mt-1">
+                              Add a Whole Flame-Grilled Chicken for <span className="text-chicken-red font-extrabold text-base">R{wholeChickenPromoPrice.toFixed(2)}</span>!
+                            </h3>
+                            <p className="text-[11px] text-gray-700 font-semibold max-w-xl leading-relaxed">
+                              Make any meal a feast! With any grilled meal ordered, you can add <span className="underline decoration-gold font-bold">one full flame-grilled chicken</span> basted in your choice of sizzling sauce for only <span className="text-chicken-red font-bold">R{wholeChickenPromoPrice.toFixed(2)}</span>.
+                            </p>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <span className="inline-block px-2 py-0.5 bg-chicken-red text-gold text-[9px] font-black uppercase rounded border border-black shadow-sm tracking-widest leading-none">
-                            LIMITED TIME PROMO
-                          </span>
-                          <h3 className="text-sm font-black uppercase tracking-tight text-black flex items-center justify-center md:justify-start gap-1.5 mt-1">
-                            Add a Whole Flame-Grilled Chicken for <span className="text-chicken-red font-extrabold text-base">R{wholeChickenPromoPrice.toFixed(2)}</span>!
-                          </h3>
-                          <p className="text-[11px] text-gray-700 font-semibold max-w-xl leading-relaxed">
-                            Make any meal a feast! With any grilled meal ordered, you can add <span className="underline decoration-gold font-bold">one full flame-grilled chicken</span> basted in your choice of sizzling sauce for only <span className="text-chicken-red font-bold">R{wholeChickenPromoPrice.toFixed(2)}</span>.
-                          </p>
-                        </div>
+                        <button
+                          onClick={() => {
+                            const customWholeChicken = {
+                              id: "promo-whole-chicken",
+                              name: "Whole Flame-Grilled Chicken (Promo)",
+                              category: "Grilled Chicken",
+                              price: wholeChickenPromoPrice,
+                              description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
+                              imageUrl: "https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/grilled_chicken.webp",
+                              spiceLevel: 1
+                            };
+                            handleAddToCart(customWholeChicken);
+                            triggerToast("Whole Flame-Grilled Chicken Promo added!", "success");
+                          }}
+                          className="w-full md:w-auto px-5 py-3 bg-gold hover:bg-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition duration-150 border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] active:scale-95 shrink-0 relative z-10"
+                        >
+                          Add Promo Chicken
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          const customWholeChicken = {
-                            id: "promo-whole-chicken",
-                            name: "Whole Flame-Grilled Chicken (Promo)",
-                            category: "Grilled Chicken",
-                            price: wholeChickenPromoPrice,
-                            description: "Promo Whole Flame-Grilled Chicken added via meal upsell.",
-                            imageUrl: "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Grilled-Chicken-1.jpg",
-                            spiceLevel: 1
-                          };
-                          handleAddToCart(customWholeChicken);
-                          triggerToast("Whole Flame-Grilled Chicken Promo added! 🍗", "success");
-                        }}
-                        className="w-full md:w-auto px-5 py-3 bg-gold hover:bg-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition duration-150 border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] active:scale-95 shrink-0"
-                      >
-                        Add Promo Chicken
-                      </button>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -2021,45 +2016,55 @@ Thank you for choosing Krispy King!
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="relative z-10 w-full p-5 flex flex-col md:flex-row items-center justify-between gap-4"
+                      className="relative z-10 w-full h-full min-h-[200px] md:min-h-[160px] flex items-center"
                     >
-                      <div className="absolute -right-6 -bottom-6 text-9xl opacity-[0.06] pointer-events-none select-none rotate-12">
-                        🍟
-                      </div>
-                      <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
-                        <div className="bg-gold text-black p-3.5 rounded-full border-2 border-black text-3xl animate-bounce shadow shrink-0">
-                          🍟
-                        </div>
-                        <div>
-                          <span className="inline-block px-2 py-0.5 bg-gold text-black text-[9px] font-black uppercase rounded border border-black shadow-sm tracking-widest leading-none">
-                            CRUNCH UPGRADE
-                          </span>
-                          <h4 className="font-black uppercase tracking-tight text-sm text-black flex items-center justify-center md:justify-start gap-1 mt-1">
-                            Level Up Your Crunch! <span className="text-chicken-red">Spiced Hot Chips</span>
-                          </h4>
-                          <p className="text-xs text-gray-700 font-semibold mt-0.5 max-w-md leading-relaxed">
-                            Our legendary crispy, golden-fried hot potato chips with signature seasoning. The ultimate companion for your chicken!
-                          </p>
-                        </div>
+                      {/* Image filling Top, Bottom, and Left edge 100% completely with zero gaps */}
+                      <div className="absolute inset-y-0 left-0 w-32 sm:w-48 md:w-64 lg:w-72 h-full overflow-hidden shrink-0 group z-0">
+                        <img 
+                          src="https://www.krispykingsa.co.za/cdn-cgi/image/width=1080/images/menu/sides.webp" 
+                          onError={(e) => {
+                            e.currentTarget.src = "https://www.krispykingsa.co.za/wp-content/uploads/2024/01/Chips-1.jpg";
+                          }}
+                          alt="Spiced Hot Chips" 
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
+                          referrerPolicy="no-referrer"
+                        />
+                        {/* Smooth gradient fade on the right side of the image */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-50/50 to-amber-50 pointer-events-none" />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2.5 w-full md:w-auto shrink-0">
-                        {[
-                          { id: "s-chips-regular", label: "Regular", price: `R${regChipsPrice.toFixed(2)}`, isPopular: true },
-                          { id: "s-chips-large", label: "Large", price: `R${lrgChipsPrice.toFixed(2)}` }
-                        ].map((size) => (
-                          <button
-                            key={size.id}
-                            onClick={() => {
-                              addQuickAddOn(size.id);
-                              triggerToast(`${size.label} Chips added to your cart! 🍟`, "success");
-                            }}
-                            className={`relative p-3.5 rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all active:scale-95 text-center ${
-                              size.isPopular
-                                ? "bg-gold text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
-                                : "bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-gray-150"
-                            }`}
-                          >
+                      <div className="relative z-10 w-full p-4 sm:p-5 pl-36 sm:pl-52 md:pl-68 lg:pl-76 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row w-full md:w-auto">
+                          <div>
+                            <span className="inline-block px-2 py-0.5 bg-gold text-black text-[9px] font-black uppercase rounded border border-black shadow-sm tracking-widest leading-none">
+                              CRUNCH UPGRADE
+                            </span>
+                            <h4 className="font-black uppercase tracking-tight text-sm text-black flex items-center justify-center md:justify-start gap-1 mt-1">
+                              Level Up Your Crunch! <span className="text-chicken-red">Spiced Hot Chips</span>
+                            </h4>
+                            <p className="text-xs text-gray-700 font-semibold mt-0.5 max-w-md leading-relaxed">
+                              Our legendary crispy, golden-fried hot potato chips with signature seasoning. The ultimate companion for your chicken!
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2.5 w-full md:w-auto shrink-0 relative z-10">
+                          {[
+                            { id: "s-chips-regular", label: "Regular", price: `R${regChipsPrice.toFixed(2)}`, isPopular: true },
+                            { id: "s-chips-large", label: "Large", price: `R${lrgChipsPrice.toFixed(2)}` }
+                          ].map((size) => (
+                            <button
+                              key={size.id}
+                              onClick={() => {
+                                addQuickAddOn(size.id);
+                                triggerToast(`${size.label} Chips added to your cart!`, "success");
+                              }}
+                              className={`relative p-3.5 rounded-xl border-2 border-black flex flex-col items-center justify-center transition-all active:scale-95 text-center ${
+                                size.isPopular
+                                  ? "bg-gold text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-yellow-400"
+                                  : "bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-gray-150"
+                              }`}
+                            >
                             {size.isPopular && (
                               <span className="absolute -top-2 px-1.5 py-0.5 text-[7px] font-black uppercase text-white bg-chicken-red rounded-full border border-black shadow-sm leading-none">
                                 BEST VALUE
@@ -2070,7 +2075,8 @@ Thank you for choosing Krispy King!
                           </button>
                         ))}
                       </div>
-                    </motion.div>
+                    </div>
+                  </motion.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -2220,9 +2226,9 @@ Thank you for choosing Krispy King!
               })()}
             </div>
 
-            {/* Quick Floating Cart Bar for Mobile bottom */}
+            {/* Quick Floating Cart Bar for Mobile & Desktop bottom */}
             {cartTotalItems > 0 && (
-              <div className="fixed bottom-4 left-4 right-4 z-30">
+              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-30">
                 <button
                   onClick={() => {
                     playBeep(880, "sine", 0.08);
@@ -2492,11 +2498,16 @@ Thank you for choosing Krispy King!
                   {!cartHasChips && (
                     <div className="bg-amber-50 border border-gold/40 p-4 rounded-xl space-y-3 shadow-sm">
                       <span className="text-[10px] font-black uppercase text-orange bg-yellow-400/80 px-2 py-0.5 rounded border border-yellow-500">
-                        🍟 Hungry for more? Quick Add-on
+                        Hungry for more? Quick Add-on
                       </span>
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">🍟</span>
+                        <div className="flex items-center gap-2.5">
+                          <img 
+                            src="https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=500&q=80" 
+                            alt="Spiced Chips" 
+                            className="w-10 h-10 object-cover rounded-lg border border-black/20 shrink-0" 
+                            referrerPolicy="no-referrer"
+                          />
                           <div>
                             <span className="block text-xs font-black uppercase text-gray-900">Add regular chips for R{regChipsPrice.toFixed(2)}</span>
                             <span className="block text-[10px] text-gray-500">Perfect crisp complement to your order!</span>
@@ -2515,11 +2526,16 @@ Thank you for choosing Krispy King!
                   {showWholeChickenUpsell && (
                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl space-y-3 shadow-sm">
                       <span className="text-[10px] font-black uppercase text-white bg-chicken-red px-2 py-0.5 rounded border border-red-600">
-                        🍗 Whole Grilled Chicken Deal - R{wholeChickenPromoPrice.toFixed(2)}
+                        Whole Grilled Chicken Deal - R{wholeChickenPromoPrice.toFixed(2)}
                       </span>
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">🍗</span>
+                        <div className="flex items-center gap-2.5">
+                          <img 
+                            src="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=500&q=80" 
+                            alt="Whole Flame-Grilled Chicken" 
+                            className="w-10 h-10 object-cover rounded-lg border border-black/20 shrink-0" 
+                            referrerPolicy="no-referrer"
+                          />
                           <div>
                             <span className="block text-xs font-black uppercase text-gray-900">Add Whole Flame-Grilled Chicken</span>
                             <span className="block text-[10px] text-gray-500">Special R{wholeChickenPromoPrice.toFixed(2)} promo for choosing our premium meals!</span>
@@ -2781,7 +2797,7 @@ Thank you for choosing Krispy King!
                     <div className="flex items-center justify-center gap-1.5 text-gold">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                       <span className="text-xs font-black uppercase tracking-widest">
-                        ⚡ Contactless NFC Claiming
+                        Contactless NFC Claiming
                       </span>
                     </div>
                     
@@ -2850,7 +2866,7 @@ Thank you for choosing Krispy King!
                           </>
                         ) : (
                           <>
-                            <span>📂</span> Write Physical NFC Pass Tag
+                            Write Physical NFC Pass Tag
                           </>
                         )}
                       </button>
@@ -2867,7 +2883,7 @@ Thank you for choosing Krispy King!
                   {customerActiveOrder.status === "verified" && (
                     <div className="bg-amber-50 border border-gold rounded-2xl p-4 text-center space-y-3">
                       <span className="block text-[10px] font-black uppercase text-amber-800 tracking-wider">
-                        ⚡ Self-Service Counter Checkout
+                        Self-Service Counter Checkout
                       </span>
                       {!showSelfVerifyInput ? (
                         <button
@@ -3994,11 +4010,11 @@ Thank you for choosing Krispy King!
                           Manual Sections
                         </span>
                         {[
-                          { id: "intro", title: "👑 1. Overview & Mission" },
-                          { id: "arch", title: "⚡ 2. System Architecture" },
-                          { id: "cust", title: "🛒 3. Customer Workflow" },
-                          { id: "staff", title: "🧑‍🍳 4. Staff Operations" },
-                          { id: "sec", title: "🔒 5. Security & Overrides" },
+                          { id: "intro", title: "1. Overview & Mission" },
+                          { id: "arch", title: "2. System Architecture" },
+                          { id: "cust", title: "3. Customer Workflow" },
+                          { id: "staff", title: "4. Staff Operations" },
+                          { id: "sec", title: "5. Security & Overrides" },
                         ].map((sec) => (
                           <button
                             key={sec.id}
@@ -4024,7 +4040,7 @@ Thank you for choosing Krispy King!
                         {/* Section 1 */}
                         <div id="manual-intro" className="space-y-3 pb-6 border-b">
                           <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
-                            👑 1. System Overview & Mission
+                            1. System Overview & Mission
                           </h4>
                           <div className="text-xs text-gray-700 space-y-2 font-medium leading-relaxed">
                             <p>
@@ -4039,7 +4055,7 @@ Thank you for choosing Krispy King!
                         {/* Section 2 */}
                         <div id="manual-arch" className="space-y-3 pb-6 border-b">
                           <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
-                            ⚡ 2. Core System Architecture
+                            2. Core System Architecture
                           </h4>
                           <div className="text-xs text-gray-700 space-y-2 font-medium leading-relaxed">
                             <p>The platform is built using a lightning-fast full-stack architecture:</p>
@@ -4056,7 +4072,7 @@ Thank you for choosing Krispy King!
                         {/* Section 3 */}
                         <div id="manual-cust" className="space-y-3 pb-6 border-b">
                           <h4 className="text-md font-black text-chicken-red uppercase tracking-wide">
-                            🛒 3. Customer Ordering Workflow
+                            3. Customer Ordering Workflow
                           </h4>
                           <div className="text-xs text-gray-700 space-y-3 font-medium leading-relaxed">
                             <p className="font-bold">Step 3.1: Menu Browsing & Customization</p>
@@ -4215,7 +4231,7 @@ Thank you for choosing Krispy King!
                       return (
                         <div key={idx} className="space-y-3 bg-gray-50 p-3.5 rounded-2xl border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)]">
                           <span className="block text-xs font-black uppercase text-chicken-red tracking-wider flex items-center gap-1">
-                            🍗 Chicken #{idx + 1}:
+                            Chicken #{idx + 1}:
                           </span>
                           
                           {/* Spice Level for Chicken #idx (only if not fried chicken) */}
@@ -4223,7 +4239,7 @@ Thank you for choosing Krispy King!
                             <div className="space-y-1">
                               <span className="block text-[10px] font-black uppercase text-gray-500">Spice Level:</span>
                               <div className="grid grid-cols-4 gap-1">
-                                {["Lemon/Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Ex-Hot 🌶️🌶️🌶️"].map((label, sIdx) => (
+                                {["Lemon/Herb", "Mild 🌶️", "Hot 🌶️🌶️", "Ex-Hot 🌶️🌶️🌶️"].map((label, sIdx) => (
                                   <button
                                     key={sIdx}
                                     type="button"
@@ -4255,7 +4271,7 @@ Thank you for choosing Krispy King!
                             <div className="grid grid-cols-3 gap-1">
                               {[
                                 { label: "None", value: "No Sauce" },
-                                { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                                { label: "BBQ", value: "BBQ Sauce (on the side)" },
                                 { label: "Reaper (+R5) 🌶️", value: "Carolina Reaper Sauce (on the side)" }
                               ].map((sauceItem, sIdx) => (
                                 <button
@@ -4291,10 +4307,10 @@ Thank you for choosing Krispy King!
                     {selectedComboItem.spiceLevel !== undefined && !(selectedComboItem.category.toLowerCase().includes("fried") || selectedComboItem.name.toLowerCase().includes("fried")) && (
                       <div className="space-y-2">
                         <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
-                          🌶️ SELECT YOUR SPICE LEVEL:
+                          SELECT YOUR SPICE LEVEL:
                         </label>
                         <div className="grid grid-cols-4 gap-1.5">
-                          {["Lemon & Herb 🍋", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
+                          {["Lemon & Herb", "Mild 🌶️", "Hot 🌶️🌶️", "Extra Hot 🌶️🌶️🌶️"].map((label, idx) => (
                             <button
                               key={idx}
                               type="button"
@@ -4319,12 +4335,12 @@ Thank you for choosing Krispy King!
                     {selectedComboItem.category !== "Beverages" && selectedComboItem.category !== "Mocktails" && (
                       <div className="space-y-2">
                         <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
-                          🍯 SELECT YOUR SAUCE OPTION (ON THE SIDE):
+                          SELECT YOUR SAUCE OPTION (ON THE SIDE):
                         </label>
                         <div className="grid grid-cols-3 gap-1.5">
                           {[
                             { label: "No Sauce", value: "No Sauce" },
-                            { label: "BBQ 🍯", value: "BBQ Sauce (on the side)" },
+                            { label: "BBQ", value: "BBQ Sauce (on the side)" },
                             { label: "Reaper (+R5) 🌶️", value: "Carolina Reaper Sauce (on the side)" }
                           ].map((item, idx) => (
                             <button
@@ -4398,7 +4414,7 @@ Thank you for choosing Krispy King!
                 {(selectedComboItem.id === "g-chicken-main" || selectedComboItem.category === "Grilled Chicken") && (
                   <div className="space-y-2 bg-amber-50/50 border border-gold/30 p-4 rounded-xl">
                     <label className="block text-xs font-black uppercase text-gray-800 tracking-wider">
-                      🍟 ADD CRISPY CHIPS / FRIES:
+                      ADD CRISPY CHIPS / FRIES:
                     </label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
