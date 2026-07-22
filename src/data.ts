@@ -15,19 +15,15 @@ const RAW_MENU_ITEMS: MenuItem[] = [
     isCombo: true,
     comboOptions: [
       {
-        name: "Portion Size",
+        name: "Portion & Meal Option",
         choices: [
           { label: "Quarter Chicken", priceModifier: 0 },
+          { label: "Quarter Chicken + Chips", priceModifier: 15.00 },
           { label: "Half Chicken", priceModifier: 35.00 },
+          { label: "Half Chicken + Chips", priceModifier: 55.00 },
           { label: "Full Chicken", priceModifier: 90.00 },
+          { label: "Full Chicken + Chips", priceModifier: 135.00 },
           { label: "2 Full Chicken Family Pack", priceModifier: 155.00 }
-        ]
-      },
-      {
-        name: "Chips / Meal Option",
-        choices: [
-          { label: "Without Chips", priceModifier: 0 },
-          { label: "With Chips", priceModifier: 15.00 }
         ]
       }
     ]

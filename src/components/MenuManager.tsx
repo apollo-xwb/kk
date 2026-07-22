@@ -327,11 +327,15 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     let newGroup: ComboOption;
     if (presetType === "portion") {
       newGroup = {
-        name: "Portion Size",
+        name: "Portion & Meal Option",
         choices: [
-          { label: "Quarter Chicken (250g)", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
-          { label: "Half Chicken (500g)", priceModifier: 35.00, rawPrice: (baseP + 35).toFixed(2) } as any,
-          { label: "Full Chicken (1kg)", priceModifier: 90.00, rawPrice: (baseP + 90).toFixed(2) } as any
+          { label: "Quarter Chicken", priceModifier: 0, rawPrice: baseP.toFixed(2) } as any,
+          { label: "Quarter Chicken + Chips", priceModifier: 15.00, rawPrice: (baseP + 15).toFixed(2) } as any,
+          { label: "Half Chicken", priceModifier: 35.00, rawPrice: (baseP + 35).toFixed(2) } as any,
+          { label: "Half Chicken + Chips", priceModifier: 55.00, rawPrice: (baseP + 55).toFixed(2) } as any,
+          { label: "Full Chicken", priceModifier: 90.00, rawPrice: (baseP + 90).toFixed(2) } as any,
+          { label: "Full Chicken + Chips", priceModifier: 135.00, rawPrice: (baseP + 135).toFixed(2) } as any,
+          { label: "2 Full Chicken Family Pack", priceModifier: 155.00, rawPrice: (baseP + 155).toFixed(2) } as any
         ]
       };
     } else if (presetType === "sauce") {

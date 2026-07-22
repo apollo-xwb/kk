@@ -422,20 +422,6 @@ export default function App() {
           const data = docSnap.data();
           const rawOpts = data.comboOptions !== undefined ? data.comboOptions : (MENU_ITEMS.find(m => m.id === docSnap.id)?.comboOptions || []);
           let finalOpts = [...rawOpts];
-          const catLower = (data.category || "").toLowerCase();
-          const nameLower = (data.name || "").toLowerCase();
-          if (catLower.includes("grilled") || catLower.includes("burger") || nameLower.includes("grilled") || nameLower.includes("burger")) {
-            const hasChipsGroup = finalOpts.some(o => o.name.toLowerCase().includes("chip") || o.name.toLowerCase().includes("meal"));
-            if (!hasChipsGroup) {
-              finalOpts.push({
-                name: "Chips / Meal Option",
-                choices: [
-                  { label: "Without Chips", priceModifier: 0 },
-                  { label: "With Chips", priceModifier: 15.00 }
-                ]
-              });
-            }
-          }
 
           // Strip out deprecated options like 3 Full Chicken Family Pack
           finalOpts = finalOpts.map(opt => ({
@@ -473,6 +459,22 @@ export default function App() {
             }
           } catch (e) {
             console.error("Error cleaning up deprecated menu items:", e);
+          }
+        }
+
+        // Ensure Flame-Grilled Chicken is updated to have portion + chips options in Firestore
+        const gChickenInDb = items.find(i => i.id === "g-chicken-main");
+        if (gChickenInDb && (!gChickenInDb.comboOptions || !gChickenInDb.comboOptions.some(o => o.choices.some(c => c.label.includes("+ Chips"))))) {
+          const localGChicken = MENU_ITEMS.find(m => m.id === "g-chicken-main");
+          if (localGChicken && localGChicken.comboOptions) {
+            try {
+              await setDoc(doc(db, "menu_items", "g-chicken-main"), {
+                ...gChickenInDb,
+                comboOptions: localGChicken.comboOptions
+              }, { merge: true });
+            } catch (e) {
+              console.error("Error updating Flame-Grilled Chicken in Firestore:", e);
+            }
           }
         }
 
