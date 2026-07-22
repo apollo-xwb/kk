@@ -32,7 +32,9 @@ import {
   Share2,
   Copy,
   BookOpen,
-  FileText
+  FileText,
+  LayoutGrid,
+  List
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
@@ -212,6 +214,7 @@ export default function App() {
   }, [cart]);
 
   const [activeCategory, setActiveCategory] = useState<string>("Grilled Chicken");
+  const [menuViewMode, setMenuViewMode] = useState<"columns" | "list">("columns");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "info" | "error" } | null>(null);
@@ -2148,10 +2151,47 @@ Thank you for choosing Krispy King!
 
             {/* Grid List of Menu Items */}
             <div>
-              <h2 className="text-xl font-black text-black uppercase tracking-tight mb-4 flex items-center gap-2">
-                <span>{activeCategory} Menu</span>
-                <span className="h-1 flex-grow bg-gray-200 rounded-full"></span>
-              </h2>
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 className="text-xl font-black text-black uppercase tracking-tight flex items-center gap-2 flex-grow min-w-[200px]">
+                  <span>{activeCategory} Menu</span>
+                  <span className="h-1 flex-grow bg-gray-200 rounded-full"></span>
+                </h2>
+
+                {/* View Mode Switcher: Columns (2x2 on mobile) vs List */}
+                <div className="flex items-center gap-1 bg-gray-150 p-1 rounded-xl border-2 border-black/20 shadow-inner shrink-0">
+                  <button
+                    onClick={() => {
+                      playBeep(800, "sine", 0.03);
+                      setMenuViewMode("columns");
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                      menuViewMode === "columns"
+                        ? "bg-black text-gold shadow"
+                        : "text-gray-600 hover:text-black hover:bg-gray-200"
+                    }`}
+                    title="2x2 Columns View"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5 text-gold" />
+                    <span>Columns</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      playBeep(800, "sine", 0.03);
+                      setMenuViewMode("list");
+                    }}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                      menuViewMode === "list"
+                        ? "bg-black text-gold shadow"
+                        : "text-gray-600 hover:text-black hover:bg-gray-200"
+                    }`}
+                    title="1-Column List View"
+                  >
+                    <List className="w-3.5 h-3.5 text-gold" />
+                    <span>List</span>
+                  </button>
+                </div>
+              </div>
 
               {activeCategory === "Breakfast Menu" && !isBreakfastActive && (
                 <div className="mb-6 bg-amber-50 border-2 border-dashed border-amber-400 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2185,11 +2225,15 @@ Thank you for choosing Krispy King!
                 });
 
                 return (
-                  <div className={`grid gap-6 ${
-                    displayedItems.length === 1 
-                      ? "grid-cols-1 max-w-sm mx-auto justify-center justify-items-center w-full" 
-                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                  }`}>
+                  <div className={
+                    menuViewMode === "list"
+                      ? "flex flex-col gap-3.5 max-w-3xl mx-auto w-full"
+                      : `grid gap-2.5 sm:gap-6 ${
+                          displayedItems.length === 1 
+                            ? "grid-cols-1 max-w-sm mx-auto justify-center justify-items-center w-full" 
+                            : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3"
+                        }`
+                  }>
                     {displayedItems.map((item) => {
                       const isBreakfastItem = item.category === "Breakfast Menu" || item.isBreakfast;
                       const available = isItemAvailable(item.id) && (!isBreakfastItem || isBreakfastActive);
@@ -2198,6 +2242,7 @@ Thank you for choosing Krispy King!
                           key={item.id}
                           item={item}
                           available={available}
+                          viewMode={menuViewMode}
                           onAdd={(item, spice) => handleAddToCart(item, spice)}
                           onCustomize={(item) => {
                             playBeep(750, "sine", 0.05);
